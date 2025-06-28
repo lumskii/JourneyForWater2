@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Journey for Water</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load Three.js from unpkg CDN with a specific version -->
+    <script src="https://unpkg.com/three@0.158.0/build/three.min.js" 
+        integrity="sha384-GUTXpk4PZr+q8FYg/snf5u5oZBz3Kp2P2SHRupxDcH6+0JtqXNtjy3jM2UXu6k3" 
+        crossorigin="anonymous"
+        onerror="handleThreeJsError()"></script>
+    <script>
+        function handleThreeJsError() {
+            // Try loading from a different CDN if the first one fails
+            const fallbackScript = document.createElement('script');
+            fallbackScript.src = 'https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js';
+            fallbackScript.onerror = function() {
+                // Try loading from local fallback if both CDNs fail
+                const localFallbackScript = document.createElement('script');
+                localFallbackScript.src = 'libs/three.min.js';
+                localFallbackScript.onerror = function() {
+                    console.error('Failed to load Three.js from CDNs and local fallback');
+                    // Show an error message to the user
+                    document.body.innerHTML = `
+                        <div style="display: flex; justify-content: center; align-items: center; height: 100vh; text-align: center;">
+                            <div>
+                                <h1 style="color: #ef4444; font-size: 24px; margin-bottom: 16px;">Failed to Load Game Engine</h1>
+                                <p style="color: #4b5563; font-size: 16px;">Please check your internet connection and refresh the page.</p>
+                                <p style="color: #6b7280; font-size: 14px; margin-top: 8px;">Error: Could not load Three.js from any source</p>
+                            </div>
+                        </div>
+                    `;
+                };
+                document.head.appendChild(localFallbackScript);
+            };
+            document.head.appendChild(fallbackScript);
+        }
+
+        // Check if Three.js loaded successfully
+        window.addEventListener('load', function() {
+            if (typeof THREE === 'undefined') {
+                handleThreeJsError();
+            }
+        });
+    </script>
+    <link rel="stylesheet" href="index.css">
+</head>
+<body class="bg-gray-100 font-sans">
+    <!-- Game Container -->
+    <div id="gameContainer" class="w-full h-screen relative overflow-hidden">
+        
+        <!-- Splash Screen -->
+        <div id="splashScreen" class="screen active absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-blue-50 to-blue-100">
+            <div class="text-center space-y-8">
+                <div class="space-y-4">
+                    <h1 class="text-6xl md:text-8xl font-bold text-blue-600">Journey for Water</h1>
+                    <p class="text-xl md:text-2xl text-gray-700 max-w-2xl mx-auto">
+                        Experience the daily journey to collect clean water
+                    </p>
+                </div>
+                
+                <!-- charity: water branding -->
+                <div class="space-y-4">
+                    <div class="text-sm text-gray-500">In partnership with</div>
+                    <div class="text-2xl font-bold text-blue-600">charity: water</div>
+                </div>
+                
+                <button id="startGameBtn" class="bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-bold py-4 px-8 rounded-lg text-xl transition-all duration-300 transform hover:scale-105">
+                    Start Journey
+                </button>
+            </div>
+        </div>
+
+        <!-- Morning Prep Screen -->
+        <div id="morningPrepScreen" class="screen absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-orange-50 to-yellow-100">
+            <div class="text-center space-y-8 max-w-2xl mx-auto px-4">
+                <h2 class="text-4xl md:text-6xl font-bold text-orange-700">Morning Preparation</h2>
+                <p class="text-lg md:text-xl text-gray-700">
+                    The sun rises and it's time to begin your daily journey to collect water. 
+                    Your family depends on you to bring back clean water today.
+                </p>
+                <div class="bg-white rounded-lg p-6 shadow-lg">
+                    <h3 class="text-xl font-semibold text-gray-800 mb-4">Today's Mission</h3>
+                    <ul class="text-left space-y-2 text-gray-700">
+                        <li>• Walk to the water source (2km journey)</li>
+                        <li>• Collect water from the jerry cans</li>
+                        <li>• Complete the water collection challenge</li>
+                        <li>• Return home safely with your water</li>
+                    </ul>
+                </div>
+                <button id="beginJourneyBtn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-4 px-8 rounded-lg text-xl transition-all duration-300 transform hover:scale-105">
+                    Begin Journey
+                </button>
+            </div>
+        </div>
+
+        <!-- Journey Level Screen -->
+        <div id="journeyLevelScreen" class="screen absolute inset-0 bg-gray-900">
+            <!-- HUD -->
+            <div class="absolute top-0 left-0 right-0 z-10 bg-black bg-opacity-50 text-white p-4">
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center space-x-6">
+                        <!-- Energy Bar -->
+                        <div class="flex items-center space-x-2">
+                            <span class="text-xl">❤️</span>
+                            <div class="w-32 h-4 bg-gray-700 rounded-full overflow-hidden">
+                                <div id="energyBar" class="h-full bg-green-500 transition-all duration-300" style="width: 100%"></div>
+                            </div>
+                        </div>
+                        
+                        <!-- Water Points -->
+                        <div class="flex items-center space-x-2">
+                            <span class="text-xl">💧</span>
+                            <span id="waterPoints" class="text-2xl font-bold">0</span>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center space-x-6">
+                        <!-- Day Counter -->
+                        <div class="text-center">
+                            <div class="text-sm text-gray-300">Day</div>
+                            <div id="dayCounter" class="text-2xl font-bold">1</div>
+                        </div>
+                        
+                        <!-- Time of Day -->
+                        <div class="text-center">
+                            <div class="text-sm text-gray-300">Time</div>
+                            <div id="timeOfDay" class="text-2xl font-bold">Morning</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Three.js Canvas -->
+            <canvas id="gameCanvas" class="w-full h-full"></canvas>
+
+            <!-- Mobile Controls -->
+            <div class="absolute bottom-4 left-4 right-4 z-10 md:hidden">
+                <div class="flex justify-between items-center">
+                    <button id="leftBtn" class="bg-white bg-opacity-30 text-white text-2xl font-bold w-16 h-16 rounded-full backdrop-blur-sm">
+                        ←
+                    </button>
+                    <button id="jumpBtn" class="bg-white bg-opacity-30 text-white text-2xl font-bold w-16 h-16 rounded-full backdrop-blur-sm">
+                        ↑
+                    </button>
+                    <button id="rightBtn" class="bg-white bg-opacity-30 text-white text-2xl font-bold w-16 h-16 rounded-full backdrop-blur-sm">
+                        →
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Water Collection Mini-game Screen -->
+        <div id="waterCollectionScreen" class="screen absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-blue-50 to-blue-100">
+            <div class="text-center space-y-8 max-w-2xl mx-auto px-4">
+                <h2 class="text-4xl md:text-6xl font-bold text-blue-700">Water Collection</h2>
+                <p class="text-lg md:text-xl text-gray-700">
+                    Time to fill your jerry can! Click "Stop" when the marker is in the green zone.
+                </p>
+                
+                <div class="bg-white rounded-lg p-8 shadow-lg">
+                    <div class="mb-6">
+                        <div class="text-sm text-gray-600 mb-2">Fill Progress</div>
+                        <div class="w-80 h-8 bg-gray-200 rounded-full overflow-hidden relative">
+                            <div id="fillBar" class="h-full bg-blue-500 transition-all duration-100" style="width: 0%"></div>
+                            <div id="marker" class="absolute top-0 w-2 h-full bg-red-500 rounded-full transition-all duration-100" style="left: 0%"></div>
+                        </div>
+                        <div class="flex justify-between text-xs text-gray-500 mt-1">
+                            <span>0%</span>
+                            <span class="text-green-600">Perfect Zone</span>
+                            <span>100%</span>
+                        </div>
+                    </div>
+                    
+                    <button id="stopBtn" class="bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-6 rounded-lg text-lg transition-all duration-300">
+                        Stop!
+                    </button>
+                </div>
+                
+                <div id="miniGameResult" class="hidden">
+                    <div id="resultMessage" class="text-2xl font-bold mb-4"></div>
+                    <div id="waterCollected" class="text-lg text-gray-700 mb-4"></div>
+                </div>
+                
+                <button id="continueJourneyBtn" class="hidden bg-blue-500 hover:bg-blue-600 text-white font-bold py-4 px-8 rounded-lg text-xl transition-all duration-300">
+                    Continue Journey
+                </button>
+            </div>
+        </div>
+
+        <!-- Return Journey Screen -->
+        <div id="returnJourneyScreen" class="screen absolute inset-0 bg-gray-900">
+            <!-- Same HUD as Journey Level -->
+            <div class="absolute top-0 left-0 right-0 z-10 bg-black bg-opacity-50 text-white p-4">
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center space-x-6">
+                        <div class="flex items-center space-x-2">
+                            <span class="text-xl">❤️</span>
+                            <div class="w-32 h-4 bg-gray-700 rounded-full overflow-hidden">
+                                <div id="returnEnergyBar" class="h-full bg-green-500 transition-all duration-300" style="width: 100%"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center space-x-2">
+                            <span class="text-xl">💧</span>
+                            <span id="returnWaterPoints" class="text-2xl font-bold">0</span>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center space-x-6">
+                        <div class="text-center">
+                            <div class="text-sm text-gray-300">Day</div>
+                            <div id="returnDayCounter" class="text-2xl font-bold">1</div>
+                        </div>
+                        
+                        <div class="text-center">
+                            <div class="text-sm text-gray-300">Time</div>
+                            <div id="returnTimeOfDay" class="text-2xl font-bold">Afternoon</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <canvas id="returnGameCanvas" class="w-full h-full"></canvas>
+
+            <!-- Mobile Controls -->
+            <div class="absolute bottom-4 left-4 right-4 z-10 md:hidden">
+                <div class="flex justify-between items-center">
+                    <button id="returnLeftBtn" class="bg-white bg-opacity-30 text-white text-2xl font-bold w-16 h-16 rounded-full backdrop-blur-sm">
+                        ←
+                    </button>
+                    <button id="returnJumpBtn" class="bg-white bg-opacity-30 text-white text-2xl font-bold w-16 h-16 rounded-full backdrop-blur-sm">
+                        ↑
+                    </button>
+                    <button id="returnRightBtn" class="bg-white bg-opacity-30 text-white text-2xl font-bold w-16 h-16 rounded-full backdrop-blur-sm">
+                        →
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Day Summary Screen -->
+        <div id="daySummaryScreen" class="screen absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-purple-50 to-blue-100">
+            <div class="text-center space-y-8 max-w-2xl mx-auto px-4">
+                <h2 class="text-4xl md:text-6xl font-bold text-purple-700">Day Complete!</h2>
+                
+                <div class="bg-white rounded-lg p-8 shadow-lg space-y-6">
+                    <div class="grid grid-cols-2 gap-6">
+                        <div class="text-center">
+                            <div class="text-3xl font-bold text-blue-600" id="finalWaterPoints">0</div>
+                            <div class="text-gray-600">Water Points</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-3xl font-bold text-green-600" id="finalEnergy">100</div>
+                            <div class="text-gray-600">Energy Remaining</div>
+                        </div>
+                    </div>
+                    
+                    <div class="border-t pt-6">
+                        <h3 class="text-xl font-semibold text-gray-800 mb-4">Today's Achievements</h3>
+                        <ul class="text-left space-y-2 text-gray-700">
+                            <li id="achievement1" class="flex items-center">
+                                <span class="text-green-500 mr-2">✓</span>
+                                Completed water collection journey
+                            </li>
+                            <li id="achievement2" class="flex items-center">
+                                <span class="text-green-500 mr-2">✓</span>
+                                Successfully filled jerry can
+                            </li>
+                            <li id="achievement3" class="flex items-center">
+                                <span class="text-green-500 mr-2">✓</span>
+                                Returned home safely
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <button id="viewLeaderboardBtn" class="bg-purple-500 hover:bg-purple-600 text-white font-bold py-4 px-8 rounded-lg text-xl transition-all duration-300 transform hover:scale-105">
+                    View Leaderboard
+                </button>
+            </div>
+        </div>
+
+        <!-- Leaderboard Screen -->
+        <div id="leaderboardScreen" class="screen absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-green-50 to-blue-100">
+            <div class="text-center space-y-8 max-w-4xl mx-auto px-4">
+                <h2 class="text-4xl md:text-6xl font-bold text-green-700">Leaderboard</h2>
+                <p class="text-lg md:text-xl text-gray-700">
+                    Top water collectors this week
+                </p>
+                
+                <div class="bg-white rounded-lg p-8 shadow-lg">
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between p-4 bg-yellow-100 rounded-lg">
+                            <div class="flex items-center space-x-4">
+                                <span class="text-2xl">🥇</span>
+                                <div>
+                                    <div class="font-bold text-lg">Sarah K.</div>
+                                    <div class="text-gray-600">Kenya</div>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-2xl font-bold text-blue-600">247</div>
+                                <div class="text-gray-600">water points</div>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center justify-between p-4 bg-gray-100 rounded-lg">
+                            <div class="flex items-center space-x-4">
+                                <span class="text-2xl">🥈</span>
+                                <div>
+                                    <div class="font-bold text-lg">Aisha M.</div>
+                                    <div class="text-gray-600">Ethiopia</div>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-2xl font-bold text-blue-600">198</div>
+                                <div class="text-gray-600">water points</div>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center justify-between p-4 bg-orange-100 rounded-lg">
+                            <div class="flex items-center space-x-4">
+                                <span class="text-2xl">🥉</span>
+                                <div>
+                                    <div class="font-bold text-lg">Maria L.</div>
+                                    <div class="text-gray-600">Uganda</div>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-2xl font-bold text-blue-600">156</div>
+                                <div class="text-gray-600">water points</div>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center justify-between p-4 bg-blue-50 rounded-lg border-2 border-blue-200">
+                            <div class="flex items-center space-x-4">
+                                <span class="text-2xl">👤</span>
+                                <div>
+                                    <div class="font-bold text-lg">You</div>
+                                    <div class="text-gray-600">Today's Journey</div>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-2xl font-bold text-blue-600" id="playerScore">0</div>
+                                <div class="text-gray-600">water points</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flex flex-col sm:flex-row gap-4">
+                    <button id="playAgainBtn" class="bg-green-500 hover:bg-green-600 text-white font-bold py-4 px-8 rounded-lg text-xl transition-all duration-300">
+                        Play Again
+                    </button>
+                    <a href="https://www.charitywater.org" target="_blank" class="bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-bold py-4 px-8 rounded-lg text-xl transition-all duration-300 text-center">
+                        Donate to charity: water
+                    </a>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script src="App.js"></script>
+    <script src="JourneyLevel.js"></script>
+</body>
+</html> 

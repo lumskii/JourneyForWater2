@@ -1,0 +1,140 @@
+/* Custom styles for Journey for Water */
+
+/* Screen transitions */
+.screen {
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.5s ease-in-out;
+    transform: translateX(100%);
+}
+
+.screen.active {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(0);
+}
+
+/* Water points animation */
+@keyframes waterPointsPop {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+    100% { transform: scale(1); }
+}
+
+.water-points-pop {
+    animation: waterPointsPop 0.3s ease-out;
+}
+
+/* Jerry can flash animation */
+@keyframes jerryCanFlash {
+    0% { filter: brightness(1); }
+    50% { filter: brightness(1.5) hue-rotate(120deg); }
+    100% { filter: brightness(1); }
+}
+
+.jerry-can-flash {
+    animation: jerryCanFlash 0.5s ease-out;
+}
+
+/* Energy bar warning */
+.energy-warning {
+    background-color: #ef4444 !important;
+}
+
+/* Mini-game marker animation */
+@keyframes markerMove {
+    0% { left: 0%; }
+    100% { left: 100%; }
+}
+
+.marker-moving {
+    animation: markerMove 2s linear infinite;
+}
+
+/* Perfect zone indicator */
+.perfect-zone {
+    background: linear-gradient(90deg, 
+        transparent 0%, 
+        transparent 30%, 
+        rgba(34, 197, 94, 0.3) 30%, 
+        rgba(34, 197, 94, 0.3) 70%, 
+        transparent 70%, 
+        transparent 100%);
+}
+
+/* Mobile touch controls */
+.mobile-control {
+    touch-action: manipulation;
+    user-select: none;
+}
+
+/* Responsive canvas */
+#gameCanvas, #returnGameCanvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    background-color: #87CEEB; /* Sky blue background */
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #00B4FF;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #0099cc;
+}
+
+/* Focus styles for accessibility */
+button:focus, a:focus {
+    outline: 2px solid #00B4FF;
+    outline-offset: 2px;
+}
+
+/* Loading states */
+.loading {
+    opacity: 0.7;
+    pointer-events: none;
+}
+
+/* Success/failure animations */
+@keyframes successPulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+.success-animation {
+    animation: successPulse 0.5s ease-out;
+}
+
+@keyframes failureShake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+}
+
+.failure-animation {
+    animation: failureShake 0.3s ease-out;
+}
+
+/* Pulse animation for warnings */
+@keyframes pulse {
+    0%, 100% { 
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 1;
+    }
+    50% { 
+        transform: translate(-50%, -50%) scale(1.05);
+        opacity: 0.8;
+    }
+} 
