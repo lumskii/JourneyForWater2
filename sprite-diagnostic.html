@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sprite Diagnostic Test</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            text-align: center;
+        }
+        
+        .test-section {
+            background-color: white;
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        .warning { background-color: #fff3cd; color: #856404; }
+        .info { background-color: #d1ecf1; color: #0c5460; }
+        
+        canvas {
+            border: 2px solid #333;
+            margin: 10px 0;
+            background-color: #87CEEB;
+        }
+        
+        #console {
+            background-color: #000;
+            color: #00ff00;
+            padding: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            text-align: left;
+            max-height: 300px;
+            overflow-y: auto;
+            border-radius: 5px;
+            margin-top: 20px;
+            white-space: pre-wrap;
+        }
+        
+        .image-test {
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin: 10px 0;
+            background-color: #f9f9f9;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Sprite Animation Diagnostic</h1>
+        
+        <div class="test-section">
+            <h3>Test Results</h3>
+            <div id="imageLoadStatus" class="status info">🔄 Testing image loading...</div>
+            <div id="spriteSystemStatus" class="status info">🔄 Testing sprite system...</div>
+            <div id="animationStatus" class="status info">🔄 Testing animation...</div>
+            <div id="renderingStatus" class="status info">🔄 Testing rendering...</div>
+        </div>
+        
+        <div class="test-section">
+            <h3>Image Load Test</h3>
+            <div class="image-test">
+                <p><strong>Direct Image Load Test:</strong></p>
+                <img id="directImage" src="assets/char25d.png" style="border: 1px solid #000; max-width: 200px;" 
+                     onload="console.log('Direct image loaded successfully')" 
+                     onerror="console.error('Direct image failed to load')">
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h3>Canvas Tests</h3>
+            
+            <div>
+                <h4>Test 1: Basic Canvas Drawing</h4>
+                <canvas id="basicCanvas" width="400" height="200"></canvas>
+                <p id="basicCanvasStatus">Testing...</p>
+            </div>
+            
+            <div>
+                <h4>Test 2: Sprite Animation</h4>
+                <canvas id="spriteCanvas" width="400" height="200"></canvas>
+                <p id="spriteCanvasStatus">Testing...</p>
+            </div>
+            
+            <div>
+                <h4>Test 3: Large Sprite (Debug Size)</h4>
+                <canvas id="largeCanvas" width="400" height="200"></canvas>
+                <p id="largeCanvasStatus">Testing...</p>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h3>Console Output</h3>
+            <div id="console"></div>
+        </div>
+    </div>
+
+    <script src="SpriteAnimation.js"></script>
+    <script>
+        // Enhanced console logging
+        const consoleDiv = document.getElementById('console');
+        const originalLog = console.log;
+        const originalError = console.error;
+        const originalWarn = console.warn;
+        
+        function addConsoleMessage(message, type = 'log') {
+            const timestamp = new Date().toLocaleTimeString();
+            const line = `[${timestamp}] ${type.toUpperCase()}: ${message}\n`;
+            consoleDiv.textContent += line;
+            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+        }
+        
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            addConsoleMessage(args.join(' '), 'log');
+        };
+        
+        console.error = function(...args) {
+            originalError.apply(console, args);
+            addConsoleMessage(args.join(' '), 'error');
+        };
+        
+        console.warn = function(...args) {
+            originalWarn.apply(console, args);
+            addConsoleMessage(args.join(' '), 'warn');
+        };
+        
+        class SpriteDiagnostic {
+            constructor() {
+                this.tests = [];
+                this.currentTest = 0;
+                this.sprite = null;
+                
+                console.log('Starting sprite diagnostic tests...');
+                this.runTests();
+            }
+            
+            async runTests() {
+                try {
+                    await this.testImageLoading();
+                    await this.testBasicCanvas();
+                    await this.testSpriteSystem();
+                    await this.testAnimation();
+                    await this.testLargeSprite();
+                    
+                    console.log('All diagnostic tests completed!');
+                } catch (error) {
+                    console.error('Diagnostic test failed:', error);
+                }
+            }
+            
+            async testImageLoading() {
+                console.log('=== Test 1: Image Loading ===');
+                
+                return new Promise((resolve, reject) => {
+                    const img = new Image();
+                    
+                    img.onload = () => {
+                        console.log('✅ Image loaded successfully');
+                        console.log(`Image dimensions: ${img.width}x${img.height}`);
+                        console.log(`Image src: ${img.src}`);
+                        
+                        document.getElementById('imageLoadStatus').className = 'status success';
+                        document.getElementById('imageLoadStatus').textContent = '✅ Image loads correctly';
+                        
+                        resolve(img);
+                    };
+                    
+                    img.onerror = (error) => {
+                        console.error('❌ Image failed to load:', error);
+                        document.getElementById('imageLoadStatus').className = 'status error';
+                        document.getElementById('imageLoadStatus').textContent = '❌ Image failed to load';
+                        reject(error);
+                    };
+                    
+                    img.src = 'assets/char25d.png';
+                    console.log('Loading image from:', img.src);
+                });
+            }
+            
+            async testBasicCanvas() {
+                console.log('=== Test 2: Basic Canvas ===');
+                
+                const canvas = document.getElementById('basicCanvas');
+                const ctx = canvas.getContext('2d');
+                
+                // Clear canvas
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                // Draw background
+                ctx.fillStyle = '#87CEEB';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                // Draw test rectangle
+                ctx.fillStyle = '#FF0000';
+                ctx.fillRect(50, 50, 100, 100);
+                
+                // Draw test text
+                ctx.fillStyle = '#000000';
+                ctx.font = '16px Arial';
+                ctx.fillText('Canvas working!', 170, 100);
+                
+                document.getElementById('basicCanvasStatus').textContent = '✅ Basic canvas rendering works';
+                console.log('✅ Basic canvas test passed');
+            }
+            
+            async testSpriteSystem() {
+                console.log('=== Test 3: Sprite System ===');
+                
+                return new Promise((resolve, reject) => {
+                    try {
+                        // 1024x1024 sprite sheet with 3x2 grid (6 frames), each frame ~341x512
+                        this.sprite = new SpriteAnimation('assets/char25d.png', 341, 512, 3, 6);
+                        
+                        const checkLoaded = () => {
+                            if (this.sprite.imageLoaded) {
+                                console.log('✅ Sprite system loaded');
+                                console.log(`Sprite image dimensions: ${this.sprite.image.width}x${this.sprite.image.height}`);
+                                console.log(`Frame size: ${this.sprite.frameWidth}x${this.sprite.frameHeight}`);
+                                console.log(`Total frames: ${this.sprite.totalFrames}`);
+                                
+                                document.getElementById('spriteSystemStatus').className = 'status success';
+                                document.getElementById('spriteSystemStatus').textContent = '✅ Sprite system working';
+                                
+                                resolve();
+                            } else {
+                                setTimeout(checkLoaded, 100);
+                            }
+                        };
+                        
+                        checkLoaded();
+                    } catch (error) {
+                        console.error('❌ Sprite system error:', error);
+                        document.getElementById('spriteSystemStatus').className = 'status error';
+                        document.getElementById('spriteSystemStatus').textContent = '❌ Sprite system failed';
+                        reject(error);
+                    }
+                });
+            }
+            
+            async testAnimation() {
+                console.log('=== Test 4: Sprite Animation ===');
+                
+                if (!this.sprite || !this.sprite.imageLoaded) {
+                    console.error('❌ Cannot test animation - sprite not loaded');
+                    return;
+                }
+                
+                const canvas = document.getElementById('spriteCanvas');
+                const ctx = canvas.getContext('2d');
+                
+                // Clear canvas
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                // Draw background
+                ctx.fillStyle = '#87CEEB';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                // Draw character at normal size
+                try {
+                    console.log('Drawing sprite at frame 0...');
+                    this.sprite.setFrame(0);
+                    this.sprite.draw(ctx, 100, 50, 64, 64);
+                    
+                    console.log('Drawing sprite at frame 1...');
+                    this.sprite.setFrame(1);
+                    this.sprite.draw(ctx, 180, 50, 64, 64);
+                    
+                    console.log('Drawing sprite at frame 2...');
+                    this.sprite.setFrame(2);
+                    this.sprite.draw(ctx, 260, 50, 64, 64);
+                    
+                    // Add labels
+                    ctx.fillStyle = '#000000';
+                    ctx.font = '12px Arial';
+                    ctx.fillText('Frame 0', 110, 130);
+                    ctx.fillText('Frame 1', 190, 130);
+                    ctx.fillText('Frame 2', 270, 130);
+                    
+                    document.getElementById('spriteCanvasStatus').textContent = '✅ Sprite frames rendered';
+                    document.getElementById('animationStatus').className = 'status success';
+                    document.getElementById('animationStatus').textContent = '✅ Animation system working';
+                    
+                    console.log('✅ Animation test passed');
+                } catch (error) {
+                    console.error('❌ Animation test failed:', error);
+                    document.getElementById('spriteCanvasStatus').textContent = '❌ Sprite rendering failed';
+                    document.getElementById('animationStatus').className = 'status error';
+                    document.getElementById('animationStatus').textContent = '❌ Animation failed';
+                }
+            }
+            
+            async testLargeSprite() {
+                console.log('=== Test 5: Large Sprite (Visibility) ===');
+                
+                if (!this.sprite || !this.sprite.imageLoaded) {
+                    console.error('❌ Cannot test large sprite - sprite not loaded');
+                    return;
+                }
+                
+                const canvas = document.getElementById('largeCanvas');
+                const ctx = canvas.getContext('2d');
+                
+                // Clear canvas
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                // Draw background
+                ctx.fillStyle = '#87CEEB';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                // Draw grid for reference
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+                ctx.lineWidth = 1;
+                for (let x = 0; x < canvas.width; x += 50) {
+                    ctx.beginPath();
+                    ctx.moveTo(x, 0);
+                    ctx.lineTo(x, canvas.height);
+                    ctx.stroke();
+                }
+                for (let y = 0; y < canvas.height; y += 50) {
+                    ctx.beginPath();
+                    ctx.moveTo(0, y);
+                    ctx.lineTo(canvas.width, y);
+                    ctx.stroke();
+                }
+                
+                try {
+                    // Draw very large sprite for visibility
+                    console.log('Drawing large sprite (128x128)...');
+                    this.sprite.setFrame(0);
+                    this.sprite.draw(ctx, 150, 50, 128, 128);
+                    
+                    // Draw outline for visibility
+                    ctx.strokeStyle = '#FF0000';
+                    ctx.lineWidth = 2;
+                    ctx.strokeRect(150, 50, 128, 128);
+                    
+                    // Add label
+                    ctx.fillStyle = '#000000';
+                    ctx.font = '14px Arial';
+                    ctx.fillText('Large sprite (128x128)', 150, 40);
+                    
+                    document.getElementById('largeCanvasStatus').textContent = '✅ Large sprite rendered - should be clearly visible';
+                    document.getElementById('renderingStatus').className = 'status success';
+                    document.getElementById('renderingStatus').textContent = '✅ Rendering system working';
+                    
+                    console.log('✅ Large sprite test passed');
+                } catch (error) {
+                    console.error('❌ Large sprite test failed:', error);
+                    document.getElementById('largeCanvasStatus').textContent = '❌ Large sprite rendering failed';
+                    document.getElementById('renderingStatus').className = 'status error';
+                    document.getElementById('renderingStatus').textContent = '❌ Rendering failed';
+                }
+            }
+        }
+        
+        // Start diagnostic when page loads
+        window.addEventListener('load', () => {
+            new SpriteDiagnostic();
+        });
+    </script>
+</body>
+</html>

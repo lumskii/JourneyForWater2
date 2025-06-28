@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sprite Animation Demo - Journey for Water</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            text-align: center;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        
+        canvas {
+            border: 2px solid #333;
+            background-color: #87CEEB;
+            margin: 20px 0;
+        }
+        
+        .controls {
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin: 20px 0;
+        }
+        
+        .controls h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        
+        .controls p {
+            margin: 10px 0;
+            color: #666;
+        }
+        
+        .info {
+            background-color: #e8f4f8;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid #2196F3;
+        }
+        
+        .info h4 {
+            margin-top: 0;
+            color: #1976D2;
+        }
+        
+        .feature-list {
+            text-align: left;
+            display: inline-block;
+            margin: 0 auto;
+        }
+        
+        .feature-list li {
+            margin: 5px 0;
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Journey for Water - Character Sprite Animation</h1>
+        
+        <div class="info">
+            <h4>🎮 Animated Character Demo</h4>
+            <p>This demo showcases the sprite animation system using the 6-frame character sprite sheet. The character can walk, run, and idle with smooth frame transitions.</p>
+        </div>
+        
+        <canvas id="gameCanvas" width="800" height="400"></canvas>
+        
+        <div class="controls">
+            <h3>🎯 Controls</h3>
+            <p><strong>Arrow Keys</strong> or <strong>WASD</strong> - Move character</p>
+            <p><strong>Hold Shift</strong> - Run (faster movement and animation)</p>
+            <p><strong>No input</strong> - Character returns to idle animation</p>
+        </div>
+        
+        <div class="info">
+            <h4>🛠️ Sprite Animation Features</h4>
+            <div class="feature-list">
+                <ul>
+                    <li>✅ 6-frame walking animation cycle</li>
+                    <li>✅ Idle, walk, and run animation states</li>
+                    <li>✅ Horizontal flipping for left/right movement</li>
+                    <li>✅ Configurable animation speeds</li>
+                    <li>✅ Smooth frame transitions</li>
+                    <li>✅ Sequence-based animation system</li>
+                    <li>✅ Easy integration with game engines</li>
+                    <li>✅ Canvas and WebGL compatible</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <h3>🎨 Technical Details</h3>
+            <p>The sprite sheet is 1024x1024 pixels with 6 frames arranged in a 2x3 grid (3 columns, 2 rows)</p>
+            <p>Each frame is approximately 341x512 pixels, creating smooth animation cycles</p>
+            <p>The animation system supports multiple sequences and can be easily extended</p>
+        </div>
+    </div>
+
+    <script src="SpriteAnimation.js"></script>
+    <script>
+        // Initialize the character demo when the page loads
+        window.addEventListener('load', () => {
+            const demo = new CanvasCharacterDemo('gameCanvas');
+            console.log('Character animation demo initialized!');
+        });
+        
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            const canvas = document.getElementById('gameCanvas');
+            // Keep canvas responsive while maintaining aspect ratio
+            const container = canvas.parentElement;
+            const maxWidth = Math.min(800, container.clientWidth - 40);
+            canvas.style.width = maxWidth + 'px';
+            canvas.style.height = (maxWidth * 0.5) + 'px';
+        });
+    </script>
+</body>
+</html>

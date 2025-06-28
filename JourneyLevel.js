@@ -37,7 +37,7 @@ class JourneyLevel {
         // Level dimensions
         this.levelWidth = 200;
         this.levelHeight = 20;
-        this.cameraOffset = 10;
+        this.cameraOffset = 0; // Center the camera on the player
         
         // Jerry can properties
         this.jerryCanSize = 0.5;
@@ -162,7 +162,7 @@ class JourneyLevel {
             0.1,
             1000
         );
-        this.camera.position.set(0, 5, 15);
+        this.camera.position.set(5, 5, 15); // Start camera centered on player starting position
         
         // Renderer
         try {
@@ -322,18 +322,51 @@ class JourneyLevel {
     }
     
     createPlayer() {
-        // Player body (simple cube for now)
+        // Player body (simple cube for collision detection)
         const playerGeometry = new THREE.BoxGeometry(0.8, 1.2, 0.8);
         const playerMaterial = new THREE.MeshLambertMaterial({ 
-            color: 0x4169E1 // Royal blue
+            color: 0x4169E1, // Royal blue
+            transparent: true,
+            opacity: 0.0 // Make it completely invisible - only used for collision detection
         });
         this.player = new THREE.Mesh(playerGeometry, playerMaterial);
         
-        this.player.position.set(0, 1, 0);
+        this.player.position.set(5, 1, 0); // Start player more centered in the scene
         this.player.castShadow = true;
         this.player.receiveShadow = true;
         
         this.scene.add(this.player);
+        
+        // Add sprite animation character
+        if (typeof SpriteAnimation !== 'undefined' && typeof ThreeJSSpriteCharacter !== 'undefined') {
+            try {
+                console.log('Loading sprite character...');
+                // 1024x1024 sprite sheet with 3x2 grid (6 frames), each frame ~341x512
+                this.characterSprite = new SpriteAnimation('assets/char25d.png', 341, 512, 3, 6);
+                
+                // Wait for sprite to load
+                const initSprite = () => {
+                    if (this.characterSprite.imageLoaded) {
+                        try {
+                            this.spriteCharacter = new ThreeJSSpriteCharacter(
+                                this.scene,
+                                this.characterSprite,
+                                { x: 5, y: 1, z: 0.1 } // Match player starting position
+                            );
+                            this.spriteCharacter.setScale(1.5); // Moderate scaling for better visibility
+                            console.log('Sprite character loaded successfully!');
+                        } catch (error) {
+                            console.warn('Could not create sprite character:', error);
+                        }
+                    } else {
+                        setTimeout(initSprite, 100);
+                    }
+                };
+                initSprite();
+            } catch (error) {
+                console.warn('Sprite animation not available:', error);
+            }
+        }
     }
     
     createJerryCans() {
@@ -654,6 +687,25 @@ class JourneyLevel {
         this.playerVelocity.y -= this.gravity;
         this.player.position.y += this.playerVelocity.y;
         
+        // Update sprite character if available
+        if (this.spriteCharacter) {
+            const isMoving = Math.abs(this.playerVelocity.x) > 0.01;
+            const isRunning = Math.abs(this.playerVelocity.x) > this.moveSpeed * 1.2;
+            const facingLeft = this.playerVelocity.x < 0;
+            
+            this.spriteCharacter.update(16, isMoving, isRunning, facingLeft);
+            this.spriteCharacter.setPosition(
+                this.player.position.x,
+                this.player.position.y + 0.5, // Offset sprite slightly higher than collision box
+                this.player.position.z + 0.1
+            );
+            
+            // Debug logging (remove after testing)
+            if (Math.random() < 0.01) { // Log occasionally to avoid spam
+                console.log(`Sprite pos: (${this.player.position.x.toFixed(1)}, ${this.player.position.y.toFixed(1)}), moving: ${isMoving}, facing: ${facingLeft ? 'left' : 'right'}`);
+            }
+        }
+        
         // Energy drain system
         this.updateEnergyDrain(moveX !== 0);
         
@@ -775,12 +827,15 @@ class JourneyLevel {
     }
     
     updateCamera() {
-        // Smooth camera following
+        // Smooth camera following - center the camera directly on the player
         const targetX = this.player.position.x + this.cameraOffset;
-        this.camera.position.x += (targetX - this.camera.position.x) * 0.1;
+        this.camera.position.x += (targetX - this.camera.position.x) * 0.15; // Slightly more responsive
         
-        // Keep camera within level bounds
-        this.camera.position.x = Math.max(5, Math.min(this.levelWidth - 5, this.camera.position.x));
+        // Keep camera within level bounds, but allow more centering
+        this.camera.position.x = Math.max(7.5, Math.min(this.levelWidth - 7.5, this.camera.position.x));
+        
+        // Always look at the player position for perfect centering
+        this.camera.lookAt(this.player.position.x, this.player.position.y, 0);
     }
     
     checkLevelCompletion() {

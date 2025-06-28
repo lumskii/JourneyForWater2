@@ -5,9 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Journey for Water</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Load Three.js from unpkg CDN with a specific version -->
+    <!-- Load Three.js from unpkg CDN without the problematic integrity check -->
     <script src="https://unpkg.com/three@0.158.0/build/three.min.js" 
-        integrity="sha384-GUTXpk4PZr+q8FYg/snf5u5oZBz3Kp2P2SHRupxDcH6+0JtqXNtjy3jM2UXu6k3" 
         crossorigin="anonymous"
         onerror="handleThreeJsError()"></script>
     <script>
@@ -363,6 +362,8 @@
 
     </div>
 
+    <script src="SpriteAnimation.js"></script>
+    <script src="ThreeJSSpriteIntegration.js"></script>
     <script src="App.js"></script>
     <script src="JourneyLevel.js"></script>
 </body>
