@@ -342,7 +342,7 @@ class JourneyLevel {
             try {
                 console.log('Loading sprite character...');
                 // 1024x1024 sprite sheet with 3x2 grid (6 frames), each frame ~341x512
-                this.characterSprite = new SpriteAnimation('assets/char25d.png', 341, 512, 3, 6);
+                this.characterSprite = new SpriteAnimation('assets/charUpdate.png', 341, 512, 3, 6);
                 
                 // Wait for sprite to load
                 const initSprite = () => {
@@ -351,9 +351,9 @@ class JourneyLevel {
                             this.spriteCharacter = new ThreeJSSpriteCharacter(
                                 this.scene,
                                 this.characterSprite,
-                                { x: 5, y: 1, z: 0.1 } // Match player starting position
+                                { x: 5, y: 1.2, z: 1 } // Adjusted initial Y position to match grounded appearance
                             );
-                            this.spriteCharacter.setScale(1.5); // Moderate scaling for better visibility
+                            this.spriteCharacter.setScale(2.5); // Balanced scaling for good visibility without being too large
                             console.log('Sprite character loaded successfully!');
                         } catch (error) {
                             console.warn('Could not create sprite character:', error);
@@ -696,8 +696,8 @@ class JourneyLevel {
             this.spriteCharacter.update(16, isMoving, isRunning, facingLeft);
             this.spriteCharacter.setPosition(
                 this.player.position.x,
-                this.player.position.y + 0.5, // Offset sprite slightly higher than collision box
-                this.player.position.z + 0.1
+                this.player.position.y + 0.2, // Minimal offset to make character appear grounded
+                this.player.position.z + 1 // Ensure sprite is in front
             );
             
             // Debug logging (remove after testing)

@@ -26,8 +26,8 @@ class ThreeJSSpriteCharacter {
     init() {
         // Create canvas for dynamic texture - larger canvas for higher quality sprite
         this.canvas = document.createElement('canvas');
-        this.canvas.width = 512;  // Larger canvas to accommodate 341x512 sprite frames
-        this.canvas.height = 512;
+        this.canvas.width = 1024;  // Even larger canvas for better quality
+        this.canvas.height = 1024;
         this.ctx = this.canvas.getContext('2d');
         
         // Create Three.js texture from canvas
@@ -45,7 +45,7 @@ class ThreeJSSpriteCharacter {
         // Create sprite
         this.sprite = new THREE.Sprite(this.material);
         this.sprite.position.set(this.position.x, this.position.y, this.position.z);
-        this.sprite.scale.set(3, 4, 1); // Adjust scale for better visibility (wider, taller)
+        this.sprite.scale.set(2.5, 3, 1); // Balanced scale for good visibility without overwhelming the scene
         
         // Add to scene
         this.scene.add(this.sprite);
@@ -66,14 +66,14 @@ class ThreeJSSpriteCharacter {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         
         // Draw character centered on canvas - using more of the canvas space
-        const charWidth = 300;  // Scaled down from 341 to fit nicely in 512x512 canvas
-        const charHeight = 400; // Scaled down from 512 to fit nicely in 512x512 canvas
+        const charWidth = 600;  // Larger size for 1024x1024 canvas - using more of the original sprite dimensions
+        const charHeight = 800; // Larger size for 1024x1024 canvas - closer to original 341x512 aspect ratio
         const x = (this.canvas.width - charWidth) / 2;
         const y = (this.canvas.height - charHeight) / 2;
         
-        // Add a slight background for better visibility (optional)
-        this.ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
-        this.ctx.fillRect(x - 5, y - 5, charWidth + 10, charHeight + 10);
+        // Add a subtle background for better visibility
+        this.ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+        this.ctx.fillRect(x - 10, y - 10, charWidth + 20, charHeight + 20);
         
         this.characterAnimator.draw(this.ctx, x, y, charWidth, charHeight, facingLeft);
         
