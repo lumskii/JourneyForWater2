@@ -7,6 +7,7 @@ class AudioManager {
         this.masterGain = null;
         this.musicGain = null;
         this.sfxGain = null;
+        this.audioGenerator = null;
         
         // Audio settings
         this.settings = {
@@ -26,6 +27,9 @@ class AudioManager {
         
         // Initialize audio context
         this.initAudioContext();
+        
+        // Initialize audio generator
+        this.initAudioGenerator();
     }
     
     initAudioContext() {
@@ -50,6 +54,16 @@ class AudioManager {
             console.log('✅ Audio context initialized successfully');
         } catch (error) {
             console.warn('❌ Failed to initialize audio context:', error);
+        }
+    }
+
+    initAudioGenerator() {
+        try {
+            // Create audio generator for placeholder sounds
+            this.audioGenerator = new AudioGenerator();
+            console.log('✅ Audio generator initialized');
+        } catch (error) {
+            console.warn('❌ Failed to initialize audio generator:', error);
         }
     }
     
@@ -100,6 +114,7 @@ class AudioManager {
     }
     
     async preloadAllAudio() {
+        // Try to load real audio files first
         const audioFiles = [
             { url: 'assets/audio/ambient_desert.mp3', name: 'ambient' },
             { url: 'assets/audio/footstep.mp3', name: 'footstep' },
@@ -113,30 +128,48 @@ class AudioManager {
         ];
         
         const loadPromises = audioFiles.map(file => this.loadAudioFile(file.url, file.name));
-        await Promise.allSettled(loadPromises);
+        const results = await Promise.allSettled(loadPromises);
+        
+        // Check if any files failed to load (likely empty files)
+        const failedLoads = results.filter(result => result.status === 'rejected').length;
+        
+        if (failedLoads > 0) {
+            console.log(`⚠️ ${failedLoads} audio files failed to load, using generated sounds instead`);
+        }
         
         console.log('🎵 Audio preloading complete');
     }
     
     playMusic(name, loop = true) {
-        if (!this.audioContext || !this.settings.musicEnabled || !this.audioBuffers[name]) {
+        if (!this.audioContext || !this.settings.musicEnabled) {
             return null;
         }
         
-        // Stop current music
-        if (this.currentMusic) {
-            this.currentMusic.stop();
+        // Try to play real audio file first
+        if (this.audioBuffers[name]) {
+            // Stop current music
+            if (this.currentMusic) {
+                this.currentMusic.stop();
+            }
+            
+            const source = this.audioContext.createBufferSource();
+            source.buffer = this.audioBuffers[name];
+            source.loop = loop;
+            source.connect(this.musicGain);
+            
+            source.start(0);
+            this.currentMusic = source;
+            
+            return source;
+        } else {
+            // Fall back to generated ambient sound
+            if (name === 'ambient' && this.audioGenerator) {
+                this.audioGenerator.generateAmbientDesert();
+                return { stop: () => {} }; // Dummy object for compatibility
+            }
         }
         
-        const source = this.audioContext.createBufferSource();
-        source.buffer = this.audioBuffers[name];
-        source.loop = loop;
-        source.connect(this.musicGain);
-        
-        source.start(0);
-        this.currentMusic = source;
-        
-        return source;
+        return null;
     }
     
     stopMusic() {
@@ -147,26 +180,63 @@ class AudioManager {
     }
     
     playSFX(name, volume = 1.0) {
-        if (!this.audioContext || !this.settings.sfxEnabled || !this.audioBuffers[name]) {
+        if (!this.audioContext || !this.settings.sfxEnabled) {
             return null;
         }
         
-        const source = this.audioContext.createBufferSource();
-        const gainNode = this.audioContext.createGain();
+        // Try to play real audio file first
+        if (this.audioBuffers[name]) {
+            const source = this.audioContext.createBufferSource();
+            const gainNode = this.audioContext.createGain();
+            
+            source.buffer = this.audioBuffers[name];
+            source.connect(gainNode);
+            gainNode.connect(this.sfxGain);
+            
+            gainNode.gain.value = volume;
+            source.start(0);
+            
+            return source;
+        } else {
+            // Fall back to generated sounds
+            if (this.audioGenerator) {
+                switch (name) {
+                    case 'footstep':
+                        this.audioGenerator.generateFootstep();
+                        break;
+                    case 'jump':
+                        this.audioGenerator.generateJump();
+                        break;
+                    case 'collect_jerry':
+                        this.audioGenerator.generateCollectJerry();
+                        break;
+                    case 'collect_orb':
+                        this.audioGenerator.generateCollectOrb();
+                        break;
+                    case 'low_energy':
+                        this.audioGenerator.generateLowEnergy();
+                        break;
+                    case 'day_complete':
+                        this.audioGenerator.generateDayComplete();
+                        break;
+                    case 'hit':
+                        this.audioGenerator.generateHit();
+                        break;
+                    case 'success':
+                        this.audioGenerator.generateSuccess();
+                        break;
+                }
+                return { stop: () => {} }; // Dummy object for compatibility
+            }
+        }
         
-        source.buffer = this.audioBuffers[name];
-        source.connect(gainNode);
-        gainNode.connect(this.sfxGain);
-        
-        gainNode.gain.value = volume;
-        source.start(0);
-        
-        return source;
+        return null;
     }
     
     // Specific sound effect methods
     playFootstep() {
-        this.playSFX('footstep', 0.3);
+        // Footstep sounds disabled
+        return null;
     }
     
     playJump() {

@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio Test - Journey for Water 2.0</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            color: white;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+        }
+        
+        .audio-section {
+            margin-bottom: 30px;
+        }
+        
+        .audio-section h2 {
+            border-bottom: 2px solid rgba(255, 255, 255, 0.3);
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .button-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        
+        .audio-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(5px);
+        }
+        
+        .audio-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .status {
+            text-align: center;
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+        
+        .volume-controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+        
+        .volume-control {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 10px;
+        }
+        
+        .volume-control label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+        
+        .volume-control input[type="range"] {
+            width: 100%;
+            margin-bottom: 10px;
+        }
+        
+        .volume-control .value {
+            text-align: center;
+            font-size: 14px;
+            opacity: 0.8;
+        }
+        
+        .toggle-control {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .toggle-control input[type="checkbox"] {
+            transform: scale(1.5);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎵 Audio System Test</h1>
+        
+        <div class="status" id="status">
+            Initializing audio system...
+        </div>
+        
+        <div class="audio-section">
+            <h2>🎮 Game Sound Effects</h2>
+            <div class="button-grid">
+                <button class="audio-btn" onclick="testSound('footstep')">👣 Footstep</button>
+                <button class="audio-btn" onclick="testSound('jump')">🦘 Jump</button>
+                <button class="audio-btn" onclick="testSound('collect_jerry')">🪣 Collect Jerry</button>
+                <button class="audio-btn" onclick="testSound('collect_orb')">✨ Collect Orb</button>
+                <button class="audio-btn" onclick="testSound('hit')">💥 Hit</button>
+                <button class="audio-btn" onclick="testSound('success')">✅ Success</button>
+            </div>
+        </div>
+        
+        <div class="audio-section">
+            <h2>🎵 Background & Ambient</h2>
+            <div class="button-grid">
+                <button class="audio-btn" onclick="testMusic('ambient')">🌵 Ambient Desert</button>
+                <button class="audio-btn" onclick="testSound('low_energy')">⚠️ Low Energy</button>
+                <button class="audio-btn" onclick="testSound('day_complete')">🎉 Day Complete</button>
+            </div>
+        </div>
+        
+        <div class="audio-section">
+            <h2>🎛️ Audio Controls</h2>
+            <div class="volume-controls">
+                <div class="volume-control">
+                    <label>Master Volume</label>
+                    <input type="range" id="masterVolume" min="0" max="100" value="70">
+                    <div class="value" id="masterVolumeValue">70%</div>
+                </div>
+                
+                <div class="volume-control">
+                    <label>Music Volume</label>
+                    <input type="range" id="musicVolume" min="0" max="100" value="60">
+                    <div class="value" id="musicVolumeValue">60%</div>
+                </div>
+                
+                <div class="volume-control">
+                    <label>SFX Volume</label>
+                    <input type="range" id="sfxVolume" min="0" max="100" value="80">
+                    <div class="value" id="sfxVolumeValue">80%</div>
+                </div>
+            </div>
+            
+            <div class="toggle-control">
+                <label>Music Enabled</label>
+                <input type="checkbox" id="musicToggle" checked>
+            </div>
+            
+            <div class="toggle-control">
+                <label>Sound Effects Enabled</label>
+                <input type="checkbox" id="sfxToggle" checked>
+            </div>
+        </div>
+        
+        <div class="audio-section">
+            <h2>🧪 Test Functions</h2>
+            <div class="button-grid">
+                <button class="audio-btn" onclick="testAllSounds()">🎵 Test All Sounds</button>
+                <button class="audio-btn" onclick="testAmbientLoop()">🔄 Test Ambient Loop</button>
+                <button class="audio-btn" onclick="stopMusic()">⏹️ Stop Music</button>
+                <button class="audio-btn" onclick="resetAudio()">🔄 Reset Audio</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load scripts -->
+    <script src="generate-audio.js"></script>
+    <script src="AudioManager.js"></script>
+    
+    <script>
+        let audioManager;
+        let currentMusic = null;
+        
+        // Initialize audio system
+        async function initAudio() {
+            try {
+                audioManager = new AudioManager();
+                await audioManager.preloadAllAudio();
+                
+                // Set up volume controls
+                setupVolumeControls();
+                
+                document.getElementById('status').innerHTML = '✅ Audio system ready! Click buttons to test sounds.';
+                document.getElementById('status').style.background = 'rgba(0, 255, 0, 0.2)';
+                
+            } catch (error) {
+                document.getElementById('status').innerHTML = '❌ Failed to initialize audio: ' + error.message;
+                document.getElementById('status').style.background = 'rgba(255, 0, 0, 0.2)';
+                console.error('Audio initialization failed:', error);
+            }
+        }
+        
+        function setupVolumeControls() {
+            // Master volume
+            const masterSlider = document.getElementById('masterVolume');
+            const masterValue = document.getElementById('masterVolumeValue');
+            masterSlider.addEventListener('input', (e) => {
+                const value = e.target.value / 100;
+                audioManager.setMasterVolume(value);
+                masterValue.textContent = e.target.value + '%';
+            });
+            
+            // Music volume
+            const musicSlider = document.getElementById('musicVolume');
+            const musicValue = document.getElementById('musicVolumeValue');
+            musicSlider.addEventListener('input', (e) => {
+                const value = e.target.value / 100;
+                audioManager.setMusicVolume(value);
+                musicValue.textContent = e.target.value + '%';
+            });
+            
+            // SFX volume
+            const sfxSlider = document.getElementById('sfxVolume');
+            const sfxValue = document.getElementById('sfxVolumeValue');
+            sfxSlider.addEventListener('input', (e) => {
+                const value = e.target.value / 100;
+                audioManager.setSFXVolume(value);
+                sfxValue.textContent = e.target.value + '%';
+            });
+            
+            // Toggles
+            document.getElementById('musicToggle').addEventListener('change', (e) => {
+                audioManager.toggleMusic(e.target.checked);
+            });
+            
+            document.getElementById('sfxToggle').addEventListener('change', (e) => {
+                audioManager.toggleSFX(e.target.checked);
+            });
+        }
+        
+        function testSound(soundName) {
+            if (!audioManager) {
+                alert('Audio manager not initialized');
+                return;
+            }
+            
+            console.log(`Testing sound: ${soundName}`);
+            audioManager.playSFX(soundName);
+        }
+        
+        function testMusic(musicName) {
+            if (!audioManager) {
+                alert('Audio manager not initialized');
+                return;
+            }
+            
+            console.log(`Testing music: ${musicName}`);
+            if (currentMusic) {
+                audioManager.stopMusic();
+            }
+            currentMusic = audioManager.playMusic(musicName, true);
+        }
+        
+        function testAllSounds() {
+            if (!audioManager) {
+                alert('Audio manager not initialized');
+                return;
+            }
+            
+            console.log('Testing all sounds...');
+            const sounds = ['footstep', 'jump', 'collect_jerry', 'collect_orb', 'hit', 'success', 'low_energy', 'day_complete'];
+            
+            sounds.forEach((sound, index) => {
+                setTimeout(() => {
+                    audioManager.playSFX(sound);
+                }, index * 1000);
+            });
+        }
+        
+        function testAmbientLoop() {
+            testMusic('ambient');
+        }
+        
+        function stopMusic() {
+            if (audioManager) {
+                audioManager.stopMusic();
+                currentMusic = null;
+            }
+        }
+        
+        function resetAudio() {
+            if (audioManager) {
+                audioManager.dispose();
+            }
+            initAudio();
+        }
+        
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', initAudio);
+        
+        // Handle user interaction to start audio context
+        document.addEventListener('click', () => {
+            if (audioManager && audioManager.audioContext && audioManager.audioContext.state === 'suspended') {
+                audioManager.resumeAudioContext();
+            }
+        }, { once: true });
+    </script>
+</body>
+</html> 

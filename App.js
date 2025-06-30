@@ -610,73 +610,38 @@ class JourneyForWaterApp {
         });
     }
     
-    updateEnergy(change) {
+    updateEnergy(change, opts = {}) {
         const oldEnergy = this.gameState.energy;
         this.gameState.energy = Math.max(0, Math.min(100, this.gameState.energy + change));
-        this.updateHUD();
         
         // Save game state
         this.saveGameState();
-        
-        // Audio feedback for energy changes
+
+        // Only play sound if energy is lost due to collision or health is extremely low
         if (this.audioManager) {
             if (change > 0) {
                 // Energy gained - play positive sound
                 this.audioManager.playCollectOrb();
             } else if (change < 0) {
-                // Energy lost - play negative sound
-                this.audioManager.playHit();
+                // Only play sound if opts.collision is true or health is now <= 10
+                if (opts.collision || this.gameState.energy <= 10) {
+                    this.audioManager.playHit();
+                }
             }
         }
-        
-        // Visual feedback for energy changes
+
+        // Remove visual floating feedback for energy changes
+        // (No call to showEnergyFeedback for energy loss)
         if (change > 0) {
-            // Energy gained - show positive feedback
-            this.showEnergyFeedback('+' + change, '#10b981');
-        } else if (change < 0) {
-            // Energy lost - show negative feedback
-            this.showEnergyFeedback(change.toString(), '#ef4444');
+            // Energy gained - show positive feedback (optional, can keep or remove)
+            // this.showEnergyFeedback('+' + change, '#10b981');
         }
-        
+        // No negative feedback for energy loss
+
         // Check for critical energy levels
         if (this.gameState.energy <= 10 && oldEnergy > 10) {
             this.showLowEnergyWarning();
         }
-    }
-    
-    showEnergyFeedback(text, color) {
-        // Create floating text feedback
-        const feedback = document.createElement('div');
-        feedback.textContent = text;
-        feedback.style.position = 'absolute';
-        feedback.style.top = '20%';
-        feedback.style.left = '50%';
-        feedback.style.transform = 'translate(-50%, -50%)';
-        feedback.style.color = color;
-        feedback.style.fontSize = '24px';
-        feedback.style.fontWeight = 'bold';
-        feedback.style.pointerEvents = 'none';
-        feedback.style.zIndex = '1000';
-        feedback.style.textShadow = '2px 2px 4px rgba(0,0,0,0.5)';
-        
-        document.body.appendChild(feedback);
-        
-        // Animate the feedback
-        let opacity = 1;
-        let yOffset = 0;
-        const animate = () => {
-            opacity -= 0.02;
-            yOffset -= 1;
-            feedback.style.opacity = opacity;
-            feedback.style.transform = `translate(-50%, calc(-50% + ${yOffset}px))`;
-            
-            if (opacity > 0) {
-                requestAnimationFrame(animate);
-            } else {
-                document.body.removeChild(feedback);
-            }
-        };
-        animate();
     }
     
     showLowEnergyWarning() {

@@ -70,6 +70,11 @@ class JourneyLevel {
         this.jerryCanSize = 0.5;
         this.jerryCanSpacing = 8;
         
+        // --- ENEMY ARRAYS ---
+        this.scorpions = [];
+        // --- HAZARD ARRAYS ---
+        this.tumbleweeds = [];
+        
         this.init();
     }
     
@@ -555,6 +560,10 @@ class JourneyLevel {
         
         // Create energy orbs
         this.createEnergyOrbs();
+        // Create scorpions
+        this.createScorpions();
+        // Create tumbleweeds
+        this.createTumbleweeds();
     }
     
     createEnergyOrbs() {
@@ -887,15 +896,15 @@ class JourneyLevel {
         
         // Audio feedback for movement and landing
         if (this.app.audioManager) {
-            // Play footstep sound when moving on ground
-            if (isMoving && this.isOnGround && Math.random() < 0.1) { // 10% chance per frame
-                this.app.audioManager.playFootstep();
-            }
+            // Play footstep sound when moving on ground (disabled)
+            // if (isMoving && this.isOnGround && Math.random() < 0.1) { // 10% chance per frame
+            //     this.app.audioManager.playFootstep();
+            // }
             
-            // Play landing sound
-            if (this.characterState.justLanded) {
-                this.app.audioManager.playFootstep(); // Use footstep for landing sound
-            }
+            // Play landing sound (disabled)
+            // if (this.characterState.justLanded) {
+            //     this.app.audioManager.playFootstep(); // Use footstep for landing sound
+            // }
         }
         
         // Update timers
@@ -967,6 +976,49 @@ class JourneyLevel {
         
         // Check for game over
         this.checkGameOver();
+        
+        // --- SCORPION ENEMY LOGIC ---
+        this.scorpions.forEach(scorpion => {
+            // Patrol movement
+            scorpion.position.x += scorpion.userData.speed * scorpion.userData.dir;
+            if (scorpion.position.x > scorpion.userData.max || scorpion.position.x < scorpion.userData.min) {
+                scorpion.userData.dir *= -1;
+            }
+            // Collision cooldown
+            if (scorpion.userData.cooldown > 0) {
+                scorpion.userData.cooldown--;
+                return;
+            }
+            // Collision with player
+            if (Math.abs(scorpion.position.x - this.player.position.x) < 0.7 &&
+                Math.abs(scorpion.position.y - this.player.position.y) < 0.7) {
+                this.app.updateEnergy(-10, { collision: true });
+                this.triggerHitAnimation();
+                scorpion.userData.cooldown = 60; // 1 second cooldown
+            }
+        });
+        
+        // --- TUMBLEWEED HAZARD LOGIC ---
+        this.tumbleweeds.forEach(tumbleweed => {
+            // Roll movement
+            tumbleweed.position.x += tumbleweed.userData.speed * tumbleweed.userData.dir;
+            tumbleweed.rotation.z += 0.08 * tumbleweed.userData.dir;
+            if (tumbleweed.position.x > tumbleweed.userData.max || tumbleweed.position.x < tumbleweed.userData.min) {
+                tumbleweed.userData.dir *= -1;
+            }
+            // Collision cooldown
+            if (tumbleweed.userData.cooldown > 0) {
+                tumbleweed.userData.cooldown--;
+                return;
+            }
+            // Collision with player
+            if (Math.abs(tumbleweed.position.x - this.player.position.x) < 0.7 &&
+                Math.abs(tumbleweed.position.y - this.player.position.y) < 0.7) {
+                this.app.updateEnergy(-5, { collision: true });
+                this.triggerHitAnimation();
+                tumbleweed.userData.cooldown = 60; // 1 second cooldown
+            }
+        });
     }
     
     updateEnergyDrain(isMoving) {
@@ -1480,5 +1532,43 @@ class JourneyLevel {
         
         // Reinitialize the game
         this.init();
+    }
+    
+    createScorpions() {
+        // Simple scorpion enemies that patrol horizontally
+        const scorpionGeometry = new THREE.CylinderGeometry(0.3, 0.3, 0.2, 8);
+        const scorpionMaterial = new THREE.MeshLambertMaterial({ color: 0x8B0000 });
+        const patrols = [
+            { x: 30, y: 1, min: 28, max: 32, speed: 0.03 },
+            { x: 90, y: 1, min: 88, max: 92, speed: 0.025 },
+            { x: 150, y: 1, min: 148, max: 152, speed: 0.02 }
+        ];
+        patrols.forEach(p => {
+            const scorpion = new THREE.Mesh(scorpionGeometry, scorpionMaterial);
+            scorpion.position.set(p.x, p.y, 0);
+            scorpion.userData = { ...p, dir: 1, cooldown: 0 };
+            this.scorpions.push(scorpion);
+            this.scene.add(scorpion);
+        });
+    }
+    
+    createTumbleweeds() {
+        // Tumbleweed hazards that roll horizontally
+        const tumbleweedTexture = (typeof THREE !== 'undefined' && this.textureLoader) ? this.textureLoader.load('assets/tumbleweed.png', undefined, undefined, () => {}) : null;
+        const tumbleweedMaterial = tumbleweedTexture ?
+            new THREE.MeshLambertMaterial({ map: tumbleweedTexture, transparent: true }) :
+            new THREE.MeshLambertMaterial({ color: 0xB8860B });
+        const tumbleweedGeometry = new THREE.SphereGeometry(0.4, 12, 12);
+        const hazards = [
+            { x: 50, y: 1, min: 48, max: 54, speed: 0.04 },
+            { x: 120, y: 1, min: 118, max: 124, speed: 0.035 }
+        ];
+        hazards.forEach(h => {
+            const tumbleweed = new THREE.Mesh(tumbleweedGeometry, tumbleweedMaterial);
+            tumbleweed.position.set(h.x, h.y, 0);
+            tumbleweed.userData = { ...h, dir: 1, cooldown: 0 };
+            this.tumbleweeds.push(tumbleweed);
+            this.scene.add(tumbleweed);
+        });
     }
 } 
