@@ -68,6 +68,76 @@
                 <button id="startGameBtn" class="bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-bold py-4 px-8 rounded-lg text-xl transition-all duration-300 transform hover:scale-105">
                     Start Journey
                 </button>
+                
+                <div id="continueGameSection" class="hidden">
+                    <button id="continueGameBtn" class="bg-green-500 hover:bg-green-600 text-white font-bold py-4 px-8 rounded-lg text-xl transition-all duration-300 transform hover:scale-105 mb-4">
+                        Continue Day <span id="continueDayNumber">1</span>
+                    </button>
+                    <div class="text-sm text-gray-600">Water Points: <span id="continueWaterPoints">0</span> | Energy: <span id="continueEnergy">100</span></div>
+                </div>
+                
+                <button id="settingsBtn" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-6 rounded-lg text-lg transition-all duration-300">
+                    ⚙️ Settings
+                </button>
+            </div>
+        </div>
+
+        <!-- Settings Screen -->
+        <div id="settingsScreen" class="screen absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
+            <div class="text-center space-y-8 max-w-2xl mx-auto px-4">
+                <h2 class="text-4xl md:text-6xl font-bold text-gray-700">Settings</h2>
+                
+                <div class="bg-white rounded-lg p-8 shadow-lg space-y-6">
+                    <!-- Audio Settings -->
+                    <div class="space-y-4">
+                        <h3 class="text-xl font-semibold text-gray-800">Audio Settings</h3>
+                        
+                        <!-- Master Volume -->
+                        <div class="flex items-center justify-between">
+                            <label class="text-gray-700">Master Volume</label>
+                            <input type="range" id="masterVolume" min="0" max="100" value="70" class="w-32">
+                            <span id="masterVolumeValue" class="text-gray-600 w-12 text-right">70%</span>
+                        </div>
+                        
+                        <!-- Music Volume -->
+                        <div class="flex items-center justify-between">
+                            <label class="text-gray-700">Music Volume</label>
+                            <input type="range" id="musicVolume" min="0" max="100" value="60" class="w-32">
+                            <span id="musicVolumeValue" class="text-gray-600 w-12 text-right">60%</span>
+                        </div>
+                        
+                        <!-- SFX Volume -->
+                        <div class="flex items-center justify-between">
+                            <label class="text-gray-700">Sound Effects Volume</label>
+                            <input type="range" id="sfxVolume" min="0" max="100" value="80" class="w-32">
+                            <span id="sfxVolumeValue" class="text-gray-600 w-12 text-right">80%</span>
+                        </div>
+                        
+                        <!-- Toggle Switches -->
+                        <div class="flex items-center justify-between">
+                            <label class="text-gray-700">Music</label>
+                            <input type="checkbox" id="musicToggle" checked class="w-6 h-6">
+                        </div>
+                        
+                        <div class="flex items-center justify-between">
+                            <label class="text-gray-700">Sound Effects</label>
+                            <input type="checkbox" id="sfxToggle" checked class="w-6 h-6">
+                        </div>
+                    </div>
+                    
+                    <!-- Game Settings -->
+                    <div class="border-t pt-6 space-y-4">
+                        <h3 class="text-xl font-semibold text-gray-800">Game Settings</h3>
+                        
+                        <button id="resetProgressBtn" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-6 rounded-lg transition-all duration-300">
+                            Reset Progress
+                        </button>
+                    </div>
+                </div>
+                
+                <button id="backToSplashBtn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-4 px-8 rounded-lg text-xl transition-all duration-300">
+                    Back to Menu
+                </button>
             </div>
         </div>
 
@@ -464,6 +534,7 @@
 
     <script src="SpriteAnimation.js"></script>
     <script src="ThreeJSSpriteIntegration.js"></script>
+    <script src="AudioManager.js"></script>
     <script src="App.js"></script>
     <script src="JourneyLevel.js"></script>
 </body>

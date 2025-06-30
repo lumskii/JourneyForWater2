@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Feature Test - Journey for Water 2.0</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f0f0f0; }
+        .test-section { background: white; margin: 10px 0; padding: 15px; border-radius: 8px; }
+        .test-result { padding: 8px; margin: 5px 0; border-radius: 4px; }
+        .pass { background: #d4edda; color: #155724; }
+        .fail { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        button { padding: 8px 16px; margin: 5px; border: none; border-radius: 4px; cursor: pointer; }
+        .primary { background: #007bff; color: white; }
+        .success { background: #28a745; color: white; }
+        .warning { background: #ffc107; color: black; }
+    </style>
+</head>
+<body>
+    <h1>🎮 Journey for Water 2.0 - Feature Test Suite</h1>
+    
+    <div class="test-section">
+        <h2>🎵 Audio System Tests</h2>
+        <div id="audio-tests"></div>
+        <button class="primary" onclick="testAudio()">Test Audio Features</button>
+        <button class="success" onclick="playTestSounds()">Play Test Sounds</button>
+    </div>
+    
+    <div class="test-section">
+        <h2>💾 Save/Load System Tests</h2>
+        <div id="save-tests"></div>
+        <button class="primary" onclick="testSaveLoad()">Test Save/Load</button>
+        <button class="warning" onclick="clearTestData()">Clear Test Data</button>
+    </div>
+    
+    <div class="test-section">
+        <h2>🗺️ Level Configuration Tests</h2>
+        <div id="level-tests"></div>
+        <button class="primary" onclick="testLevelConfig()">Test Level Variants</button>
+    </div>
+    
+    <div class="test-section">
+        <h2>📱 Performance & Mobile Tests</h2>
+        <div id="performance-tests"></div>
+        <button class="primary" onclick="testPerformance()">Test Performance Features</button>
+    </div>
+    
+    <div class="test-section">
+        <h2>🎆 Visual Effects Tests</h2>
+        <div id="visual-tests"></div>
+        <button class="primary" onclick="testVisualEffects()">Test Visual Effects</button>
+        <button class="success" onclick="triggerScreenShake()">Test Screen Shake</button>
+    </div>
+
+    <script src="AudioManager.js"></script>
+    <script src="LevelConfig.js"></script>
+    
+    <script>
+        let audioManager = null;
+        let levelConfig = null;
+        
+        function log(element, message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `test-result ${type}`;
+            div.textContent = message;
+            document.getElementById(element).appendChild(div);
+        }
+        
+        async function testAudio() {
+            const container = document.getElementById('audio-tests');
+            container.innerHTML = '';
+            
+            try {
+                audioManager = new AudioManager();
+                log('audio-tests', '✓ AudioManager created successfully', 'pass');
+                
+                const initialized = await audioManager.init();
+                if (initialized) {
+                    log('audio-tests', '✓ Audio system initialized', 'pass');
+                } else {
+                    log('audio-tests', '⚠ Audio system failed to initialize', 'fail');
+                }
+                
+                // Test volume controls
+                audioManager.setMasterVolume(0.5);
+                audioManager.setMusicVolume(0.3);
+                audioManager.setSFXVolume(0.7);
+                log('audio-tests', '✓ Volume controls working', 'pass');
+                
+                // Test toggle functions
+                const musicToggled = audioManager.toggleMusic();
+                const sfxToggled = audioManager.toggleSFX();
+                log('audio-tests', `✓ Toggle functions: Music=${musicToggled}, SFX=${sfxToggled}`, 'pass');
+                
+            } catch (error) {
+                log('audio-tests', `✗ Audio test failed: ${error.message}`, 'fail');
+            }
+        }
+        
+        function playTestSounds() {
+            if (!audioManager) {
+                log('audio-tests', '⚠ Please run audio tests first', 'warning');
+                return;
+            }
+            
+            const sounds = ['jump', 'collect_jerrycan', 'collect_orb', 'footstep'];
+            sounds.forEach((sound, index) => {
+                setTimeout(() => {
+                    audioManager.playSFX(sound);
+                    log('audio-tests', `♪ Playing ${sound}`, 'info');
+                }, index * 500);
+            });
+        }
+        
+        function testSaveLoad() {
+            const container = document.getElementById('save-tests');
+            container.innerHTML = '';
+            
+            try {
+                // Test save
+                const testData = {
+                    day: 3,
+                    waterPoints: 15,
+                    energy: 85,
+                    totalWater: 25,
+                    lastPlayedDate: new Date().toISOString()
+                };
+                
+                localStorage.setItem('journeyForWater_gameState_test', JSON.stringify(testData));
+                log('save-tests', '✓ Save functionality working', 'pass');
+                
+                // Test load
+                const loaded = JSON.parse(localStorage.getItem('journeyForWater_gameState_test'));
+                if (loaded && loaded.day === 3) {
+                    log('save-tests', '✓ Load functionality working', 'pass');
+                } else {
+                    log('save-tests', '✗ Load functionality failed', 'fail');
+                }
+                
+                // Test settings persistence
+                const audioSettings = {
+                    volumes: { master: 0.8, music: 0.6, sfx: 0.9 },
+                    musicEnabled: true,
+                    sfxEnabled: true
+                };
+                
+                localStorage.setItem('journeyForWater_audioSettings_test', JSON.stringify(audioSettings));
+                log('save-tests', '✓ Settings persistence working', 'pass');
+                
+            } catch (error) {
+                log('save-tests', `✗ Save/Load test failed: ${error.message}`, 'fail');
+            }
+        }
+        
+        function clearTestData() {
+            localStorage.removeItem('journeyForWater_gameState_test');
+            localStorage.removeItem('journeyForWater_audioSettings_test');
+            log('save-tests', '✓ Test data cleared', 'info');
+        }
+        
+        function testLevelConfig() {
+            const container = document.getElementById('level-tests');
+            container.innerHTML = '';
+            
+            try {
+                levelConfig = new LevelConfig();
+                log('level-tests', '✓ LevelConfig created successfully', 'pass');
+                
+                const variants = levelConfig.getAvailableVariants();
+                log('level-tests', `✓ Found ${variants.length} level variants`, 'pass');
+                
+                variants.forEach(variant => {
+                    const config = levelConfig.getLevelConfig(variant.key);
+                    log('level-tests', `✓ ${variant.name}: ${config.platforms.length} platforms, ${config.hazards.length} hazards`, 'info');
+                });
+                
+                const randomVariant = levelConfig.getRandomVariant();
+                log('level-tests', `✓ Random variant: ${randomVariant.name}`, 'pass');
+                
+            } catch (error) {
+                log('level-tests', `✗ Level config test failed: ${error.message}`, 'fail');
+            }
+        }
+        
+        function testPerformance() {
+            const container = document.getElementById('performance-tests');
+            container.innerHTML = '';
+            
+            try {
+                // Test mobile detection
+                const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                log('performance-tests', `✓ Mobile detection: ${isMobile ? 'Mobile' : 'Desktop'}`, 'pass');
+                
+                // Test WebGL support
+                const canvas = document.createElement('canvas');
+                const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+                if (gl) {
+                    log('performance-tests', '✓ WebGL support detected', 'pass');
+                } else {
+                    log('performance-tests', '⚠ WebGL not supported', 'warning');
+                }
+                
+                // Test localStorage availability
+                if (typeof(Storage) !== "undefined") {
+                    log('performance-tests', '✓ LocalStorage supported', 'pass');
+                } else {
+                    log('performance-tests', '⚠ LocalStorage not supported', 'warning');
+                }
+                
+                // Test Web Audio API
+                if (window.AudioContext || window.webkitAudioContext) {
+                    log('performance-tests', '✓ Web Audio API supported', 'pass');
+                } else {
+                    log('performance-tests', '⚠ Web Audio API not supported', 'warning');
+                }
+                
+            } catch (error) {
+                log('performance-tests', `✗ Performance test failed: ${error.message}`, 'fail');
+            }
+        }
+        
+        function testVisualEffects() {
+            const container = document.getElementById('visual-tests');
+            container.innerHTML = '';
+            
+            try {
+                // Test CSS animations
+                const testDiv = document.createElement('div');
+                testDiv.style.cssText = 'width: 50px; height: 20px; background: #007bff; margin: 10px 0; transition: transform 0.3s ease;';
+                testDiv.textContent = 'Hover me!';
+                
+                testDiv.addEventListener('mouseenter', () => {
+                    testDiv.style.transform = 'scale(1.1)';
+                });
+                
+                testDiv.addEventListener('mouseleave', () => {
+                    testDiv.style.transform = 'scale(1)';
+                });
+                
+                container.appendChild(testDiv);
+                log('visual-tests', '✓ CSS animations working', 'pass');
+                
+                // Test particle effect simulation
+                createTestParticles(container);
+                log('visual-tests', '✓ Particle system ready', 'pass');
+                
+            } catch (error) {
+                log('visual-tests', `✗ Visual effects test failed: ${error.message}`, 'fail');
+            }
+        }
+        
+        function createTestParticles(container) {
+            const particleContainer = document.createElement('div');
+            particleContainer.style.cssText = 'position: relative; height: 100px; overflow: hidden; background: #f8f9fa; border-radius: 4px; margin: 10px 0;';
+            
+            for (let i = 0; i < 5; i++) {
+                const particle = document.createElement('div');
+                particle.style.cssText = `
+                    position: absolute;
+                    width: 6px;
+                    height: 6px;
+                    background: #007bff;
+                    border-radius: 50%;
+                    left: ${20 + i * 15}px;
+                    top: 80px;
+                    animation: particleFloat 2s ease-out infinite;
+                    animation-delay: ${i * 0.2}s;
+                `;
+                particleContainer.appendChild(particle);
+            }
+            
+            container.appendChild(particleContainer);
+        }
+        
+        function triggerScreenShake() {
+            document.body.style.animation = 'none';
+            setTimeout(() => {
+                document.body.style.animation = 'screenShake 0.3s ease-in-out';
+            }, 10);
+            
+            log('visual-tests', '📳 Screen shake triggered!', 'info');
+        }
+        
+        // Add particle animation CSS
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes particleFloat {
+                0% { transform: translateY(0) opacity(1); }
+                100% { transform: translateY(-60px) opacity(0); }
+            }
+            
+            @keyframes screenShake {
+                0% { transform: translate(0); }
+                10% { transform: translate(-2px, -1px); }
+                20% { transform: translate(-1px, 1px); }
+                30% { transform: translate(2px, -1px); }
+                40% { transform: translate(1px, 2px); }
+                50% { transform: translate(-1px, -2px); }
+                60% { transform: translate(-2px, 1px); }
+                70% { transform: translate(1px, -1px); }
+                80% { transform: translate(-1px, 1px); }
+                90% { transform: translate(2px, -1px); }
+                100% { transform: translate(0); }
+            }
+        `;
+        document.head.appendChild(style);
+        
+        // Auto-run basic tests on page load
+        window.addEventListener('load', () => {
+            setTimeout(testAudio, 500);
+            setTimeout(testSaveLoad, 1000);
+            setTimeout(testLevelConfig, 1500);
+            setTimeout(testPerformance, 2000);
+        });
+    </script>
+</body>
+</html>

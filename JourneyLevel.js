@@ -7,6 +7,11 @@ class JourneyLevel {
         this.app = app;
         this.isReturnJourney = isReturnJourney;
         
+        // Performance optimization
+        this.isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        this.frameSkip = this.isMobile ? 2 : 1; // Skip frames on mobile
+        this.frameCount = 0;
+        
         // Three.js components
         this.scene = null;
         this.camera = null;
@@ -190,9 +195,11 @@ class JourneyLevel {
             this.renderer.setPixelRatio(pixelRatio);
             this.renderer.setSize(canvas.width, canvas.height, false);
 
-            // Enable shadows
-            this.renderer.shadowMap.enabled = true;
-            this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            // Enable shadows with mobile optimization
+            this.renderer.shadowMap.enabled = !this.isMobile; // Disable shadows on mobile
+            if (!this.isMobile) {
+                this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            }
 
             // Handle context loss
             canvas.addEventListener('webglcontextlost', (event) => {
@@ -842,6 +849,11 @@ class JourneyLevel {
             this.playerVelocity.y = this.jumpStrength;
             this.isOnGround = false;
             this.characterState.isJumping = true; // Set jumping state for animation
+            
+            // Play jump sound
+            if (this.app.audioManager) {
+                this.app.audioManager.playJump();
+            }
         }
         
         // Apply gravity
@@ -872,6 +884,19 @@ class JourneyLevel {
         // Track landing
         this.characterState.justLanded = !this.characterState.wasOnGround && this.isOnGround;
         this.characterState.wasOnGround = this.isOnGround;
+        
+        // Audio feedback for movement and landing
+        if (this.app.audioManager) {
+            // Play footstep sound when moving on ground
+            if (isMoving && this.isOnGround && Math.random() < 0.1) { // 10% chance per frame
+                this.app.audioManager.playFootstep();
+            }
+            
+            // Play landing sound
+            if (this.characterState.justLanded) {
+                this.app.audioManager.playFootstep(); // Use footstep for landing sound
+            }
+        }
         
         // Update timers
         if (this.characterState.collectTimer > 0) {
@@ -1151,6 +1176,14 @@ class JourneyLevel {
         
         try {
             requestAnimationFrame(() => this.animate());
+            
+            // Frame skipping for mobile performance
+            this.frameCount++;
+            if (this.frameCount % this.frameSkip !== 0) {
+                this.renderer.render(this.scene, this.camera);
+                return;
+            }
+            
             this.updatePlayerMovement();
             this.renderer.render(this.scene, this.camera);
         } catch (error) {

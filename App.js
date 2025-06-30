@@ -28,19 +28,36 @@ class JourneyForWaterApp {
         this.returnJourneyLevel = null;
         this.miniGameInterval = null;
         
+        // Audio manager
+        this.audioManager = null;
+        
         this.init();
     }
     
-    init() {
+    async init() {
         this.setupScreens();
         this.setupEventListeners();
+        
+        // Load saved game state
+        this.loadGameState();
+        
         this.updateHUD();
+        
+        // Initialize audio manager
+        try {
+            this.audioManager = new AudioManager();
+            await this.audioManager.preloadAllAudio();
+            console.log('✅ Audio system initialized');
+        } catch (error) {
+            console.warn('❌ Failed to initialize audio system:', error);
+        }
     }
     
     setupScreens() {
         // Get all screen elements
         this.screens = {
             splash: document.getElementById('splashScreen'),
+            settings: document.getElementById('settingsScreen'),
             morningPrep: document.getElementById('morningPrepScreen'),
             journeyLevel: document.getElementById('journeyLevelScreen'),
             waterCollection: document.getElementById('waterCollectionScreen'),
@@ -54,6 +71,26 @@ class JourneyForWaterApp {
         // Splash screen
         document.getElementById('startGameBtn').addEventListener('click', () => {
             this.showScreen('morningPrep');
+        });
+        
+        // Continue game button
+        document.getElementById('continueGameBtn').addEventListener('click', () => {
+            this.showScreen('morningPrep');
+        });
+        
+        // Settings button
+        document.getElementById('settingsBtn').addEventListener('click', () => {
+            this.showScreen('settings');
+            this.setupSettingsControls();
+        });
+        
+        // Settings screen
+        document.getElementById('backToSplashBtn').addEventListener('click', () => {
+            this.showScreen('splash');
+        });
+        
+        document.getElementById('resetProgressBtn').addEventListener('click', () => {
+            this.resetProgress();
         });
         
         // Morning prep screen
@@ -146,6 +183,11 @@ class JourneyForWaterApp {
             this.journeyLevel.start();
             this.gameState.timeOfDay = 'Morning';
             this.updateHUD();
+            
+            // Start ambient music
+            if (this.audioManager) {
+                this.audioManager.playMusic('ambient');
+            }
         } catch (error) {
             console.error('Failed to start journey level:', error);
             // Show error message to user
@@ -179,6 +221,11 @@ class JourneyForWaterApp {
             this.returnJourneyLevel.start();
             this.gameState.timeOfDay = 'Afternoon';
             this.updateHUD();
+            
+            // Start ambient music
+            if (this.audioManager) {
+                this.audioManager.playMusic('ambient');
+            }
         } catch (error) {
             console.error('Failed to start return journey:', error);
             // Show error message to user
@@ -360,6 +407,11 @@ class JourneyForWaterApp {
     hitJerryCan(holeIndex) {
         if (!this.whackMoleState.isActive || !this.whackMoleState.activeCans.has(holeIndex)) return;
         
+        // Audio feedback for successful hit
+        if (this.audioManager) {
+            this.audioManager.playCollectJerry();
+        }
+        
         // Successful hit!
         this.whackMoleState.cansCollected++;
         document.getElementById('cansCollected').textContent = this.whackMoleState.cansCollected;
@@ -454,6 +506,14 @@ class JourneyForWaterApp {
         this.gameState.miniGameScore = score;
         this.gameState.waterPoints += score;
         
+        // Audio feedback for game completion
+        if (this.audioManager) {
+            this.audioManager.playSuccess();
+        }
+        
+        // Add bloom effect for success
+        this.bloomEffect();
+        
         resultMessage.textContent = message;
         waterCollected.textContent = `+${score} water points collected! (${this.whackMoleState.cansCollected} jerry cans)`;
         
@@ -505,8 +565,13 @@ class JourneyForWaterApp {
             if (bar) {
                 if (this.gameState.energy < 20) {
                     bar.classList.add('energy-warning');
+                    if (this.gameState.energy <= 10) {
+                        bar.classList.add('low-energy-pulse');
+                    } else {
+                        bar.classList.remove('low-energy-pulse');
+                    }
                 } else {
-                    bar.classList.remove('energy-warning');
+                    bar.classList.remove('energy-warning', 'low-energy-pulse');
                 }
             }
         });
@@ -515,6 +580,19 @@ class JourneyForWaterApp {
     addWaterPoints(points) {
         this.gameState.waterPoints += points;
         this.updateHUD();
+        
+        // Save game state
+        this.saveGameState();
+        
+        // Audio feedback for water collection
+        if (this.audioManager) {
+            this.audioManager.playCollectJerry();
+        }
+        
+        // Create particle effect at random position
+        const x = Math.random() * window.innerWidth;
+        const y = Math.random() * window.innerHeight * 0.5 + window.innerHeight * 0.25;
+        this.createParticleEffect(x, y, 'collect');
         
         // Animate water points display
         const waterPointsElements = [
@@ -536,6 +614,20 @@ class JourneyForWaterApp {
         const oldEnergy = this.gameState.energy;
         this.gameState.energy = Math.max(0, Math.min(100, this.gameState.energy + change));
         this.updateHUD();
+        
+        // Save game state
+        this.saveGameState();
+        
+        // Audio feedback for energy changes
+        if (this.audioManager) {
+            if (change > 0) {
+                // Energy gained - play positive sound
+                this.audioManager.playCollectOrb();
+            } else if (change < 0) {
+                // Energy lost - play negative sound
+                this.audioManager.playHit();
+            }
+        }
         
         // Visual feedback for energy changes
         if (change > 0) {
@@ -588,6 +680,11 @@ class JourneyForWaterApp {
     }
     
     showLowEnergyWarning() {
+        // Audio warning for low energy
+        if (this.audioManager) {
+            this.audioManager.playLowEnergy();
+        }
+        
         // Show warning when energy is critically low
         const warning = document.createElement('div');
         warning.innerHTML = '⚠️ Low Energy! Find yellow orbs to replenish!';
@@ -607,6 +704,12 @@ class JourneyForWaterApp {
         
         document.body.appendChild(warning);
         
+        // Add screen shake effect
+        this.screenShake();
+        
+        // Add energy bar flash
+        this.flashEnergyBar();
+        
         // Remove warning after 3 seconds
         setTimeout(() => {
             if (document.body.contains(warning)) {
@@ -615,12 +718,74 @@ class JourneyForWaterApp {
         }, 3000);
     }
     
+    screenShake() {
+        const gameContainer = document.getElementById('gameContainer');
+        if (gameContainer) {
+            gameContainer.classList.add('screen-shake');
+            setTimeout(() => {
+                gameContainer.classList.remove('screen-shake');
+            }, 300);
+        }
+    }
+    
+    flashEnergyBar() {
+        const energyBars = [document.getElementById('energyBar'), document.getElementById('returnEnergyBar')];
+        energyBars.forEach(bar => {
+            if (bar) {
+                bar.classList.add('energy-flash');
+                setTimeout(() => {
+                    bar.classList.remove('energy-flash');
+                }, 300);
+            }
+        });
+    }
+    
+    createParticleEffect(x, y, type = 'collect') {
+        const particle = document.createElement('div');
+        particle.innerHTML = type === 'collect' ? '💧' : '✨';
+        particle.style.position = 'fixed';
+        particle.style.left = x + 'px';
+        particle.style.top = y + 'px';
+        particle.style.fontSize = '24px';
+        particle.style.pointerEvents = 'none';
+        particle.style.zIndex = '1000';
+        particle.classList.add('particle-burst');
+        
+        document.body.appendChild(particle);
+        
+        setTimeout(() => {
+            if (document.body.contains(particle)) {
+                document.body.removeChild(particle);
+            }
+        }, 600);
+    }
+    
+    bloomEffect() {
+        const gameContainer = document.getElementById('gameContainer');
+        if (gameContainer) {
+            gameContainer.classList.add('bloom-effect');
+            setTimeout(() => {
+                gameContainer.classList.remove('bloom-effect');
+            }, 500);
+        }
+    }
+    
     completeJourney() {
+        // Play completion sound
+        if (this.audioManager) {
+            this.audioManager.playDayComplete();
+        }
+        
         this.showScreen('daySummary');
         this.updateDaySummary();
     }
     
     completeReturnJourney() {
+        // Play completion sound
+        if (this.audioManager) {
+            this.audioManager.playDayComplete();
+        }
+        
         this.showScreen('daySummary');
         this.updateDaySummary();
     }
@@ -667,6 +832,132 @@ class JourneyForWaterApp {
         }
         
         this.updateHUD();
+    }
+    
+    setupSettingsControls() {
+        if (!this.audioManager) return;
+        
+        // Set initial values from audio manager
+        const masterVolumeSlider = document.getElementById('masterVolume');
+        const musicVolumeSlider = document.getElementById('musicVolume');
+        const sfxVolumeSlider = document.getElementById('sfxVolume');
+        const musicToggle = document.getElementById('musicToggle');
+        const sfxToggle = document.getElementById('sfxToggle');
+        
+        // Set initial values
+        masterVolumeSlider.value = this.audioManager.settings.masterVolume * 100;
+        musicVolumeSlider.value = this.audioManager.settings.musicVolume * 100;
+        sfxVolumeSlider.value = this.audioManager.settings.sfxVolume * 100;
+        musicToggle.checked = this.audioManager.settings.musicEnabled;
+        sfxToggle.checked = this.audioManager.settings.sfxEnabled;
+        
+        // Update display values
+        document.getElementById('masterVolumeValue').textContent = Math.round(this.audioManager.settings.masterVolume * 100) + '%';
+        document.getElementById('musicVolumeValue').textContent = Math.round(this.audioManager.settings.musicVolume * 100) + '%';
+        document.getElementById('sfxVolumeValue').textContent = Math.round(this.audioManager.settings.sfxVolume * 100) + '%';
+        
+        // Add event listeners
+        masterVolumeSlider.addEventListener('input', (e) => {
+            const value = e.target.value / 100;
+            this.audioManager.setMasterVolume(value);
+            document.getElementById('masterVolumeValue').textContent = e.target.value + '%';
+        });
+        
+        musicVolumeSlider.addEventListener('input', (e) => {
+            const value = e.target.value / 100;
+            this.audioManager.setMusicVolume(value);
+            document.getElementById('musicVolumeValue').textContent = e.target.value + '%';
+        });
+        
+        sfxVolumeSlider.addEventListener('input', (e) => {
+            const value = e.target.value / 100;
+            this.audioManager.setSFXVolume(value);
+            document.getElementById('sfxVolumeValue').textContent = e.target.value + '%';
+        });
+        
+        musicToggle.addEventListener('change', (e) => {
+            this.audioManager.toggleMusic(e.target.checked);
+        });
+        
+        sfxToggle.addEventListener('change', (e) => {
+            this.audioManager.toggleSFX(e.target.checked);
+        });
+    }
+    
+    resetProgress() {
+        if (confirm('Are you sure you want to reset all progress? This cannot be undone.')) {
+            // Clear all saved data
+            localStorage.removeItem('journeyForWater_audioSettings');
+            localStorage.removeItem('journeyForWater_gameState');
+            
+            // Reset game state
+            this.resetGame();
+            
+            // Hide continue game section
+            const continueSection = document.getElementById('continueGameSection');
+            const startBtn = document.getElementById('startGameBtn');
+            if (continueSection && startBtn) {
+                continueSection.classList.add('hidden');
+                startBtn.textContent = 'Start Journey';
+            }
+            
+            // Reset audio settings
+            if (this.audioManager) {
+                this.audioManager.settings = {
+                    masterVolume: 0.7,
+                    musicVolume: 0.6,
+                    sfxVolume: 0.8,
+                    musicEnabled: true,
+                    sfxEnabled: true
+                };
+                this.audioManager.updateVolumes();
+                this.setupSettingsControls();
+            }
+            
+            alert('Progress reset successfully!');
+        }
+    }
+    
+    loadGameState() {
+        try {
+            const savedState = localStorage.getItem('journeyForWater_gameState');
+            if (savedState) {
+                const parsedState = JSON.parse(savedState);
+                this.gameState = { ...this.gameState, ...parsedState };
+                console.log('✅ Loaded saved game state');
+                
+                // Show continue game section if there's progress
+                if (this.gameState.waterPoints > 0 || this.gameState.day > 1) {
+                    this.showContinueGameSection();
+                }
+            }
+        } catch (error) {
+            console.warn('Failed to load game state:', error);
+        }
+    }
+    
+    showContinueGameSection() {
+        const continueSection = document.getElementById('continueGameSection');
+        const startBtn = document.getElementById('startGameBtn');
+        
+        if (continueSection && startBtn) {
+            continueSection.classList.remove('hidden');
+            startBtn.textContent = 'New Game';
+            
+            // Update continue game info
+            document.getElementById('continueDayNumber').textContent = this.gameState.day;
+            document.getElementById('continueWaterPoints').textContent = this.gameState.waterPoints;
+            document.getElementById('continueEnergy').textContent = this.gameState.energy;
+        }
+    }
+    
+    saveGameState() {
+        try {
+            localStorage.setItem('journeyForWater_gameState', JSON.stringify(this.gameState));
+            console.log('✅ Saved game state');
+        } catch (error) {
+            console.warn('Failed to save game state:', error);
+        }
     }
 }
 
