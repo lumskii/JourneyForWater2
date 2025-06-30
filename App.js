@@ -12,6 +12,17 @@ class JourneyForWaterApp {
             miniGameScore: 0
         };
         
+        // Whack-a-Mole game state
+        this.whackMoleState = {
+            isActive: false,
+            timeRemaining: 30,
+            cansCollected: 0,
+            gameTimer: null,
+            spawnTimer: null,
+            activeCans: new Set(),
+            holes: []
+        };
+        
         this.screens = {};
         this.journeyLevel = null;
         this.returnJourneyLevel = null;
@@ -52,8 +63,12 @@ class JourneyForWaterApp {
         });
         
         // Water collection mini-game
-        document.getElementById('stopBtn').addEventListener('click', () => {
-            this.stopMiniGame();
+        document.getElementById('startWhackBtn').addEventListener('click', () => {
+            this.startWhackMoleGame();
+        });
+        
+        document.getElementById('stopWhackBtn').addEventListener('click', () => {
+            this.stopWhackMoleGame();
         });
         
         document.getElementById('continueJourneyBtn').addEventListener('click', () => {
@@ -191,87 +206,284 @@ class JourneyForWaterApp {
     startMiniGame() {
         this.showScreen('waterCollection');
         
-        const fillBar = document.getElementById('fillBar');
-        const marker = document.getElementById('marker');
-        const stopBtn = document.getElementById('stopBtn');
+        // Reset UI
         const resultDiv = document.getElementById('miniGameResult');
         const continueBtn = document.getElementById('continueJourneyBtn');
+        const startBtn = document.getElementById('startWhackBtn');
+        const stopBtn = document.getElementById('stopWhackBtn');
         
-        // Reset UI
-        fillBar.style.width = '0%';
-        marker.style.left = '0%';
-        marker.classList.add('marker-moving');
-        stopBtn.disabled = false;
         resultDiv.classList.add('hidden');
         continueBtn.classList.add('hidden');
+        startBtn.classList.add('hidden'); // Hide start button - auto-start
+        stopBtn.classList.add('hidden'); // Hide stop button for single attempt
         
-        // Start marker movement
-        let direction = 1;
-        let position = 0;
+        // Reset whack-a-mole state
+        this.whackMoleState.isActive = false;
+        this.whackMoleState.timeRemaining = 30;
+        this.whackMoleState.cansCollected = 0;
+        this.whackMoleState.activeCans.clear();
         
-        this.miniGameInterval = setInterval(() => {
-            position += direction * 2;
-            
-            if (position >= 100) {
-                direction = -1;
-                position = 100;
-            } else if (position <= 0) {
-                direction = 1;
-                position = 0;
-            }
-            
-            marker.style.left = position + '%';
-        }, 50);
+        // Update display
+        document.getElementById('gameTimer').textContent = '30s';
+        document.getElementById('cansCollected').textContent = '0';
+        document.getElementById('gameStatus').textContent = 'Get ready! Water collection starts in...';
+        
+        // Set up hole event listeners
+        this.setupWhackMoleHoles();
+        
+        // Auto-start the game after a brief countdown
+        this.startGameCountdown();
     }
     
-    stopMiniGame() {
-        if (this.miniGameInterval) {
-            clearInterval(this.miniGameInterval);
-            this.miniGameInterval = null;
+    startGameCountdown() {
+        let countdown = 3;
+        const statusElement = document.getElementById('gameStatus');
+        
+        const countdownInterval = setInterval(() => {
+            if (countdown > 0) {
+                statusElement.textContent = `Get ready! Starting in ${countdown}...`;
+                countdown--;
+            } else {
+                statusElement.textContent = 'GO! Click the jerry cans!';
+                clearInterval(countdownInterval);
+                // Start the actual game
+                this.startWhackMoleGame();
+            }
+        }, 1000);
+    }
+    
+    setupWhackMoleHoles() {
+        const holes = document.querySelectorAll('.hole');
+        this.whackMoleState.holes = Array.from(holes);
+        
+        holes.forEach((hole, index) => {
+            // Remove any existing listeners
+            hole.replaceWith(hole.cloneNode(true));
+        });
+        
+        // Re-get holes after cloning and add new listeners
+        const newHoles = document.querySelectorAll('.hole');
+        this.whackMoleState.holes = Array.from(newHoles);
+        
+        newHoles.forEach((hole, index) => {
+            hole.addEventListener('click', () => this.hitJerryCan(index));
+        });
+    }
+    
+    startWhackMoleGame() {
+        this.whackMoleState.isActive = true;
+        this.whackMoleState.timeRemaining = 30;
+        this.whackMoleState.cansCollected = 0;
+        
+        document.getElementById('gameStatus').textContent = 'Quick! Click the jerry cans!';
+        
+        // Start game timer
+        this.whackMoleState.gameTimer = setInterval(() => {
+            this.whackMoleState.timeRemaining--;
+            const timerElement = document.getElementById('gameTimer');
+            timerElement.textContent = this.whackMoleState.timeRemaining + 's';
+            
+            // Add warning animation when time is running low
+            if (this.whackMoleState.timeRemaining <= 10 && this.whackMoleState.timeRemaining > 0) {
+                timerElement.classList.add('timer-warning');
+            } else {
+                timerElement.classList.remove('timer-warning');
+            }
+            
+            if (this.whackMoleState.timeRemaining <= 0) {
+                this.stopWhackMoleGame();
+            }
+        }, 1000);
+        
+        // Start spawning jerry cans
+        this.spawnJerryCan();
+        this.whackMoleState.spawnTimer = setInterval(() => {
+            this.spawnJerryCan();
+        }, 800); // Spawn a new can every 800ms
+    }
+    
+    spawnJerryCan() {
+        if (!this.whackMoleState.isActive) return;
+        
+        // Find available holes
+        const availableHoles = this.whackMoleState.holes
+            .map((hole, index) => index)
+            .filter(index => !this.whackMoleState.activeCans.has(index));
+        
+        if (availableHoles.length === 0) return;
+        
+        // Pick random hole
+        const randomIndex = availableHoles[Math.floor(Math.random() * availableHoles.length)];
+        const hole = this.whackMoleState.holes[randomIndex];
+        const jerryCan = hole.querySelector('.jerry-can');
+        
+        if (jerryCan) {
+            // Show jerry can with pop-up animation
+            this.whackMoleState.activeCans.add(randomIndex);
+            jerryCan.classList.remove('hidden');
+            jerryCan.style.transform = 'translateY(100%)';
+            
+            // Animate up
+            setTimeout(() => {
+                jerryCan.style.transition = 'transform 0.3s ease-out';
+                jerryCan.style.transform = 'translateY(0%)';
+            }, 50);
+            
+            // Auto-hide after random time (1-3 seconds)
+            const hideTime = Math.random() * 2000 + 1000;
+            setTimeout(() => {
+                this.hideJerryCan(randomIndex);
+            }, hideTime);
+        }
+    }
+    
+    hideJerryCan(holeIndex) {
+        if (!this.whackMoleState.activeCans.has(holeIndex)) return;
+        
+        const hole = this.whackMoleState.holes[holeIndex];
+        const jerryCan = hole.querySelector('.jerry-can');
+        
+        if (jerryCan) {
+            // Animate down
+            jerryCan.style.transition = 'transform 0.3s ease-in';
+            jerryCan.style.transform = 'translateY(100%)';
+            
+            setTimeout(() => {
+                jerryCan.classList.add('hidden');
+                jerryCan.style.transition = '';
+                jerryCan.style.transform = '';
+                this.whackMoleState.activeCans.delete(holeIndex);
+            }, 300);
+        }
+    }
+    
+    hitJerryCan(holeIndex) {
+        if (!this.whackMoleState.isActive || !this.whackMoleState.activeCans.has(holeIndex)) return;
+        
+        // Successful hit!
+        this.whackMoleState.cansCollected++;
+        document.getElementById('cansCollected').textContent = this.whackMoleState.cansCollected;
+        
+        // Visual feedback
+        const hole = this.whackMoleState.holes[holeIndex];
+        const jerryCan = hole.querySelector('.jerry-can');
+        
+        if (jerryCan) {
+            // Flash effect
+            jerryCan.style.background = 'radial-gradient(circle, #10f700, #ffff00)';
+            jerryCan.style.transform = 'scale(1.2)';
+            
+            // Create splash effect
+            this.createSplashEffect(hole);
+            
+            setTimeout(() => {
+                this.hideJerryCan(holeIndex);
+            }, 200);
+        }
+    }
+    
+    createSplashEffect(hole) {
+        const splash = document.createElement('div');
+        splash.innerHTML = '💧';
+        splash.style.position = 'absolute';
+        splash.style.top = '50%';
+        splash.style.left = '50%';
+        splash.style.transform = 'translate(-50%, -50%)';
+        splash.style.fontSize = '2rem';
+        splash.style.pointerEvents = 'none';
+        splash.style.zIndex = '1000';
+        
+        hole.appendChild(splash);
+        
+        // Animate splash
+        let scale = 1;
+        let opacity = 1;
+        const animate = () => {
+            scale += 0.1;
+            opacity -= 0.05;
+            splash.style.transform = `translate(-50%, -50%) scale(${scale})`;
+            splash.style.opacity = opacity;
+            
+            if (opacity > 0) {
+                requestAnimationFrame(animate);
+            } else {
+                hole.removeChild(splash);
+            }
+        };
+        animate();
+    }
+    
+    stopWhackMoleGame() {
+        this.whackMoleState.isActive = false;
+        
+        // Clear timers
+        if (this.whackMoleState.gameTimer) {
+            clearInterval(this.whackMoleState.gameTimer);
+        }
+        if (this.whackMoleState.spawnTimer) {
+            clearInterval(this.whackMoleState.spawnTimer);
         }
         
-        const marker = document.getElementById('marker');
+        // Hide all jerry cans
+        this.whackMoleState.activeCans.forEach(holeIndex => {
+            this.hideJerryCan(holeIndex);
+        });
+        
         const resultDiv = document.getElementById('miniGameResult');
         const resultMessage = document.getElementById('resultMessage');
         const waterCollected = document.getElementById('waterCollected');
-        const continueBtn = document.getElementById('continueJourneyBtn');
-        const stopBtn = document.getElementById('stopBtn');
         
-        marker.classList.remove('marker-moving');
-        stopBtn.disabled = true;
-        
-        // Calculate score based on marker position
-        const position = parseFloat(marker.style.left);
-        let score = 0;
+        // Calculate score and show brief results
+        const score = this.whackMoleState.cansCollected * 5; // 5 points per can
         let message = '';
         
-        if (position >= 30 && position <= 70) {
-            // Perfect zone
-            score = Math.floor(Math.random() * 20) + 30; // 30-50 points
-            message = 'Perfect! Excellent water collection!';
+        if (this.whackMoleState.cansCollected >= 20) {
+            message = 'Incredible! Lightning-fast water collection!';
             resultMessage.className = 'text-2xl font-bold mb-4 text-green-600';
-        } else if (position >= 20 && position <= 80) {
-            // Good zone
-            score = Math.floor(Math.random() * 15) + 15; // 15-30 points
-            message = 'Good job! You collected some water.';
+        } else if (this.whackMoleState.cansCollected >= 15) {
+            message = 'Excellent job! Great water collection skills!';
             resultMessage.className = 'text-2xl font-bold mb-4 text-blue-600';
-        } else {
-            // Miss
-            score = Math.floor(Math.random() * 10) + 5; // 5-15 points
-            message = 'You missed the perfect zone, but got some water.';
+        } else if (this.whackMoleState.cansCollected >= 10) {
+            message = 'Good work! You collected a decent amount of water.';
             resultMessage.className = 'text-2xl font-bold mb-4 text-orange-600';
+        } else {
+            message = 'Keep practicing! Every drop counts.';
+            resultMessage.className = 'text-2xl font-bold mb-4 text-gray-600';
         }
         
         this.gameState.miniGameScore = score;
         this.gameState.waterPoints += score;
         
         resultMessage.textContent = message;
-        waterCollected.textContent = `+${score} water points collected!`;
+        waterCollected.textContent = `+${score} water points collected! (${this.whackMoleState.cansCollected} jerry cans)`;
         
+        document.getElementById('gameStatus').textContent = `Water collection complete! Collected ${this.whackMoleState.cansCollected} jerry cans!`;
+        
+        // Show results briefly then auto-continue
         resultDiv.classList.remove('hidden');
-        continueBtn.classList.remove('hidden');
         
         this.updateHUD();
+        
+        // Auto-continue to return journey after showing results for 3 seconds
+        setTimeout(() => {
+            this.proceedToReturnJourney();
+        }, 3000);
+    }
+    
+    proceedToReturnJourney() {
+        // Show transition message
+        document.getElementById('gameStatus').textContent = 'Starting return journey...';
+        
+        // Brief pause then proceed to return journey
+        setTimeout(() => {
+            this.showScreen('returnJourney');
+            this.startReturnJourney();
+        }, 1000);
+    }
+    
+    stopMiniGame() {
+        // Legacy method - now handled by stopWhackMoleGame
+        this.stopWhackMoleGame();
     }
     
     updateHUD() {

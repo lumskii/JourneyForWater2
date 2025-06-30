@@ -155,26 +155,121 @@
             <div class="text-center space-y-8 max-w-2xl mx-auto px-4">
                 <h2 class="text-4xl md:text-6xl font-bold text-blue-700">Water Collection</h2>
                 <p class="text-lg md:text-xl text-gray-700">
-                    Time to fill your jerry can! Click "Stop" when the marker is in the green zone.
+                    You have one chance! Click the yellow jerry cans as fast as you can!
                 </p>
                 
                 <div class="bg-white rounded-lg p-8 shadow-lg">
                     <div class="mb-6">
-                        <div class="text-sm text-gray-600 mb-2">Fill Progress</div>
-                        <div class="w-80 h-8 bg-gray-200 rounded-full overflow-hidden relative">
-                            <div id="fillBar" class="h-full bg-blue-500 transition-all duration-100" style="width: 0%"></div>
-                            <div id="marker" class="absolute top-0 w-2 h-full bg-red-500 rounded-full transition-all duration-100" style="left: 0%"></div>
+                        <div class="flex justify-between items-center mb-4">
+                            <div class="text-sm text-gray-600">Time Remaining</div>
+                            <div id="gameTimer" class="text-2xl font-bold text-red-600">30s</div>
                         </div>
-                        <div class="flex justify-between text-xs text-gray-500 mt-1">
-                            <span>0%</span>
-                            <span class="text-green-600">Perfect Zone</span>
-                            <span>100%</span>
+                        <div class="flex justify-between items-center mb-4">
+                            <div class="text-sm text-gray-600">Jerry Cans Collected</div>
+                            <div id="cansCollected" class="text-2xl font-bold text-blue-600">0</div>
+                        </div>
+                        <div class="text-center mb-6">
+                            <div id="gameStatus" class="text-lg font-semibold text-gray-700">Click the yellow jerry cans as they appear!</div>
                         </div>
                     </div>
                     
-                    <button id="stopBtn" class="bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-6 rounded-lg text-lg transition-all duration-300">
-                        Stop!
+                    <!-- Whack-a-Mole Game Grid -->
+                    <div id="whackMoleGrid" class="grid grid-cols-3 gap-4 mb-6 max-w-md mx-auto">
+                        <!-- 9 holes for jerry cans to appear -->
+                        <div class="hole relative w-20 h-20 bg-gray-800 rounded-full border-4 border-gray-600 cursor-pointer overflow-hidden" data-hole="0">
+                            <div class="jerry-can absolute inset-0 w-full h-full hidden">
+                                <div class="w-12 h-16 bg-yellow-400 border-2 border-yellow-600 rounded-lg mx-auto mt-1 relative">
+                                    <div class="w-4 h-2 bg-yellow-600 rounded-t-lg mx-auto"></div>
+                                    <div class="absolute top-2 left-2 w-2 h-2 bg-yellow-600 rounded"></div>
+                                    <div class="absolute top-4 left-1/2 transform -translate-x-1/2 text-xs text-yellow-800">💧</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="hole relative w-20 h-20 bg-gray-800 rounded-full border-4 border-gray-600 cursor-pointer overflow-hidden" data-hole="1">
+                            <div class="jerry-can absolute inset-0 w-full h-full hidden">
+                                <div class="w-12 h-16 bg-yellow-400 border-2 border-yellow-600 rounded-lg mx-auto mt-1 relative">
+                                    <div class="w-4 h-2 bg-yellow-600 rounded-t-lg mx-auto"></div>
+                                    <div class="absolute top-2 left-2 w-2 h-2 bg-yellow-600 rounded"></div>
+                                    <div class="absolute top-4 left-1/2 transform -translate-x-1/2 text-xs text-yellow-800">💧</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="hole relative w-20 h-20 bg-gray-800 rounded-full border-4 border-gray-600 cursor-pointer overflow-hidden" data-hole="2">
+                            <div class="jerry-can absolute inset-0 w-full h-full hidden">
+                                <div class="w-12 h-16 bg-yellow-400 border-2 border-yellow-600 rounded-lg mx-auto mt-1 relative">
+                                    <div class="w-4 h-2 bg-yellow-600 rounded-t-lg mx-auto"></div>
+                                    <div class="absolute top-2 left-2 w-2 h-2 bg-yellow-600 rounded"></div>
+                                    <div class="absolute top-4 left-1/2 transform -translate-x-1/2 text-xs text-yellow-800">💧</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="hole relative w-20 h-20 bg-gray-800 rounded-full border-4 border-gray-600 cursor-pointer overflow-hidden" data-hole="3">
+                            <div class="jerry-can absolute inset-0 w-full h-full hidden">
+                                <div class="w-12 h-16 bg-yellow-400 border-2 border-yellow-600 rounded-lg mx-auto mt-1 relative">
+                                    <div class="w-4 h-2 bg-yellow-600 rounded-t-lg mx-auto"></div>
+                                    <div class="absolute top-2 left-2 w-2 h-2 bg-yellow-600 rounded"></div>
+                                    <div class="absolute top-4 left-1/2 transform -translate-x-1/2 text-xs text-yellow-800">💧</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="hole relative w-20 h-20 bg-gray-800 rounded-full border-4 border-gray-600 cursor-pointer overflow-hidden" data-hole="4">
+                            <div class="jerry-can absolute inset-0 w-full h-full hidden">
+                                <div class="w-12 h-16 bg-yellow-400 border-2 border-yellow-600 rounded-lg mx-auto mt-1 relative">
+                                    <div class="w-4 h-2 bg-yellow-600 rounded-t-lg mx-auto"></div>
+                                    <div class="absolute top-2 left-2 w-2 h-2 bg-yellow-600 rounded"></div>
+                                    <div class="absolute top-4 left-1/2 transform -translate-x-1/2 text-xs text-yellow-800">💧</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="hole relative w-20 h-20 bg-gray-800 rounded-full border-4 border-gray-600 cursor-pointer overflow-hidden" data-hole="5">
+                            <div class="jerry-can absolute inset-0 w-full h-full hidden">
+                                <div class="w-12 h-16 bg-yellow-400 border-2 border-yellow-600 rounded-lg mx-auto mt-1 relative">
+                                    <div class="w-4 h-2 bg-yellow-600 rounded-t-lg mx-auto"></div>
+                                    <div class="absolute top-2 left-2 w-2 h-2 bg-yellow-600 rounded"></div>
+                                    <div class="absolute top-4 left-1/2 transform -translate-x-1/2 text-xs text-yellow-800">💧</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="hole relative w-20 h-20 bg-gray-800 rounded-full border-4 border-gray-600 cursor-pointer overflow-hidden" data-hole="6">
+                            <div class="jerry-can absolute inset-0 w-full h-full hidden">
+                                <div class="w-12 h-16 bg-yellow-400 border-2 border-yellow-600 rounded-lg mx-auto mt-1 relative">
+                                    <div class="w-4 h-2 bg-yellow-600 rounded-t-lg mx-auto"></div>
+                                    <div class="absolute top-2 left-2 w-2 h-2 bg-yellow-600 rounded"></div>
+                                    <div class="absolute top-4 left-1/2 transform -translate-x-1/2 text-xs text-yellow-800">💧</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="hole relative w-20 h-20 bg-gray-800 rounded-full border-4 border-gray-600 cursor-pointer overflow-hidden" data-hole="7">
+                            <div class="jerry-can absolute inset-0 w-full h-full hidden">
+                                <div class="w-12 h-16 bg-yellow-400 border-2 border-yellow-600 rounded-lg mx-auto mt-1 relative">
+                                    <div class="w-4 h-2 bg-yellow-600 rounded-t-lg mx-auto"></div>
+                                    <div class="absolute top-2 left-2 w-2 h-2 bg-yellow-600 rounded"></div>
+                                    <div class="absolute top-4 left-1/2 transform -translate-x-1/2 text-xs text-yellow-800">💧</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="hole relative w-20 h-20 bg-gray-800 rounded-full border-4 border-gray-600 cursor-pointer overflow-hidden" data-hole="8">
+                            <div class="jerry-can absolute inset-0 w-full h-full hidden">
+                                <div class="w-12 h-16 bg-yellow-400 border-2 border-yellow-600 rounded-lg mx-auto mt-1 relative">
+                                    <div class="w-4 h-2 bg-yellow-600 rounded-t-lg mx-auto"></div>
+                                    <div class="absolute top-2 left-2 w-2 h-2 bg-yellow-600 rounded"></div>
+                                    <div class="absolute top-4 left-1/2 transform -translate-x-1/2 text-xs text-yellow-800">💧</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Buttons hidden for auto-start single attempt mode -->
+                    <button id="startWhackBtn" class="hidden bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-lg text-lg transition-all duration-300">
+                        Start Collection!
                     </button>
+                    <button id="stopWhackBtn" class="hidden bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-6 rounded-lg text-lg transition-all duration-300">
+                        Stop Game
+                    </button>
+                    
+                    <div class="mt-4">
+                        <p class="text-sm text-gray-600">Your water collection session will begin automatically...</p>
+                    </div>
                 </div>
                 
                 <div id="miniGameResult" class="hidden">
@@ -182,9 +277,14 @@
                     <div id="waterCollected" class="text-lg text-gray-700 mb-4"></div>
                 </div>
                 
+                <!-- Auto-continue - no manual button needed -->
                 <button id="continueJourneyBtn" class="hidden bg-blue-500 hover:bg-blue-600 text-white font-bold py-4 px-8 rounded-lg text-xl transition-all duration-300">
                     Continue Journey
                 </button>
+                
+                <div class="mt-4">
+                    <p class="text-sm text-gray-500">Return journey will begin automatically...</p>
+                </div>
             </div>
         </div>
 

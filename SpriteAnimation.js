@@ -54,7 +54,15 @@ class SpriteAnimation {
             this.sequences[name].currentFrame = 0;
             this.animationSpeed = this.sequences[name].speed;
             this.loop = this.sequences[name].loop;
-            this.isPlaying = true;
+            
+            // Special handling for idle - don't animate single frame sequences
+            if (name === 'idle' && this.sequences[name].frames.length === 1) {
+                this.isPlaying = false;
+                this.currentFrame = this.sequences[name].frames[0];
+            } else {
+                this.isPlaying = true;
+            }
+            
             this.frameTimer = 0;
         }
     }
@@ -140,6 +148,15 @@ class SpriteAnimation {
         }
     }
     
+    // Force set to specific frame and stop animation
+    setFrameAndStop(frame) {
+        this.isPlaying = false;
+        this.currentFrame = frame;
+        if (this.currentSequence) {
+            this.sequences[this.currentSequence].currentFrame = 0;
+        }
+    }
+    
     setFrame(frame) {
         if (frame >= 0 && frame < this.totalFrames) {
             this.currentFrame = frame;
@@ -163,41 +180,100 @@ class CharacterAnimator {
     }
     
     setupAnimations() {
-        // Based on the 6-frame sprite sheet (2 rows, 3 columns)
-        // Top row: walking frames 1-3
-        // Bottom row: walking frames 4-6
+        // Based on the 8-frame sprite sheet (2 rows, 4 columns)
+        // Top row: frames 0-3, Bottom row: frames 4-7
         
-        // Walking animation using all 6 frames
-        this.spriteSheet.addSequence('walk', [0, 1, 2, 3, 4, 5], 120, true);
+        // Breathing/Idle animation - use only first frame for now to stop constant cycling
+        this.spriteSheet.addSequence('idle', [0], 1000, true);
+        this.spriteSheet.addSequence('breathing', [0], 1000, true);
         
-        // Idle animation (just first frame)
-        this.spriteSheet.addSequence('idle', [0], 500, true);
+        // Walking animation using select frames for smoother walk
+        this.spriteSheet.addSequence('walk', [1, 2, 3, 4], 200, true);
         
-        // Running animation (faster walking)
-        this.spriteSheet.addSequence('run', [0, 1, 2, 3, 4, 5], 80, true);
+        // Running animation using movement frames
+        this.spriteSheet.addSequence('run', [1, 2, 3, 4, 5, 6], 120, true);
+        
+        // Start/Stop run transitions
+        this.spriteSheet.addSequence('startRun', [0, 1, 2], 120, false);
+        this.spriteSheet.addSequence('stopRun', [6, 4, 0], 120, false);
+        
+        // Jump arc animations
+        this.spriteSheet.addSequence('jumpStart', [1, 2], 100, false); // Crouch and push off
+        this.spriteSheet.addSequence('jumpAir', [3, 4], 200, true);     // Mid-air poses
+        this.spriteSheet.addSequence('jumpLand', [5, 6, 0], 100, false); // Landing and recovery
+        
+        // Fall animation (different from jump)
+        this.spriteSheet.addSequence('fall', [4, 5], 200, true);
+        this.spriteSheet.addSequence('hit', [7], 300, false); // Hit reaction
+        
+        // Crouch/Duck
+        this.spriteSheet.addSequence('crouch', [1], 300, true);
+        this.spriteSheet.addSequence('duck', [1, 2], 400, true);
+        
+        // Climb/Vault animations
+        this.spriteSheet.addSequence('climb', [2, 3, 4], 150, false);
+        this.spriteSheet.addSequence('vault', [3, 4, 5], 120, false);
+        
+        // Turn/Pivot - quick direction change
+        this.spriteSheet.addSequence('turnLeft', [0, 7], 80, false);
+        this.spriteSheet.addSequence('turnRight', [0, 1], 80, false);
+        
+        // Collect/Interact
+        this.spriteSheet.addSequence('collect', [2, 3], 200, false);
+        this.spriteSheet.addSequence('interact', [1, 2, 1], 150, false);
+        
+        // Celebrate/Victory
+        this.spriteSheet.addSequence('celebrate', [0, 3, 0, 4, 0], 200, false);
+        this.spriteSheet.addSequence('victory', [3, 4, 3, 4], 300, true);
+        
+        // Death/Game Over
+        this.spriteSheet.addSequence('death', [7, 6, 1], 400, false);
+        this.spriteSheet.addSequence('collapse', [0, 1, 2, 1], 500, false);
     }
     
-    update(deltaTime, isMoving = false, isRunning = false) {
+    update(deltaTime, gameState = {}) {
+        // Extract game state properties
+        const {
+            isMoving = false,
+            isRunning = false,
+            isJumping = false,
+            isFalling = false,
+            isOnGround = true,
+            isCollecting = false,
+            isCrouching = false,
+            facingDirection = 'right',
+            previousFacingDirection = 'right',
+            isHit = false,
+            isDead = false,
+            isVictorious = false,
+            justLanded = false,
+            justStartedMoving = false,
+            justStoppedMoving = false
+        } = gameState;
+        
         this.isMoving = isMoving;
         
         // Update sprite animation
         this.spriteSheet.update(deltaTime);
         
-        // Change animation based on state
+        // Simplified state machine for animation selection
+        let targetSequence = 'idle';
+        
+        // Basic movement-based animation selection
         if (isMoving) {
             if (isRunning) {
-                if (this.spriteSheet.currentSequence !== 'run') {
-                    this.spriteSheet.playSequence('run');
-                }
+                targetSequence = 'run';
             } else {
-                if (this.spriteSheet.currentSequence !== 'walk') {
-                    this.spriteSheet.playSequence('walk');
-                }
+                targetSequence = 'walk';
             }
         } else {
-            if (this.spriteSheet.currentSequence !== 'idle') {
-                this.spriteSheet.playSequence('idle');
-            }
+            targetSequence = 'idle';
+        }
+        
+        // Apply animation if different from current
+        if (this.spriteSheet.currentSequence !== targetSequence) {
+            console.log(`Animation change: ${this.spriteSheet.currentSequence} -> ${targetSequence}`);
+            this.spriteSheet.playSequence(targetSequence);
         }
     }
     

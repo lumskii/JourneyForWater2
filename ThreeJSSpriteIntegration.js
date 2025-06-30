@@ -54,13 +54,13 @@ class ThreeJSSpriteCharacter {
         this.characterAnimator = new CharacterAnimator(this.spriteAnimation);
     }
     
-    update(deltaTime, isMoving = false, isRunning = false, facingLeft = false) {
-        this.isMoving = isMoving;
-        this.isRunning = isRunning;
+    update(deltaTime, gameState = {}, facingLeft = false) {
+        this.isMoving = gameState.isMoving || false;
+        this.isRunning = gameState.isRunning || false;
         this.facingLeft = facingLeft;
         
-        // Update animation
-        this.characterAnimator.update(deltaTime, isMoving, isRunning);
+        // Update animation with enhanced game state
+        this.characterAnimator.update(deltaTime, gameState);
         
         // Clear canvas with transparent background
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);

@@ -16,6 +16,10 @@ class JourneyLevel {
         this.energyOrbs = [];
         this.platforms = [];
         
+        // Parallax background components
+        this.backgroundLayers = [];
+        this.textureLoader = new THREE.TextureLoader();
+        
         // Game state
         this.isRunning = false;
         this.keys = {};
@@ -27,6 +31,24 @@ class JourneyLevel {
         this.moveSpeed = 0.1;
         this.playerVelocity = { x: 0, y: 0 };
         this.isOnGround = false;
+        
+        // Enhanced character state tracking
+        this.characterState = {
+            wasMoving: false,
+            wasOnGround: true,
+            facingDirection: 'right',
+            previousFacingDirection: 'right',
+            isJumping: false,
+            justLanded: false,
+            justStartedMoving: false,
+            justStoppedMoving: false,
+            isCollecting: false,
+            collectTimer: 0,
+            isHit: false,
+            hitTimer: 0,
+            isDead: false,
+            isVictorious: false
+        };
         
         // Energy system
         this.energyDrainRate = 0.5;
@@ -50,25 +72,9 @@ class JourneyLevel {
         // Check if Three.js is available
         if (typeof THREE === 'undefined') {
             console.error('Three.js is not loaded. Please check the script tag.');
-            // Show error message in the game canvas area
-            const canvas = document.getElementById(this.canvasId);
-            if (canvas) {
-                const errorContainer = document.createElement('div');
-                errorContainer.style.position = 'absolute';
-                errorContainer.style.top = '50%';
-                errorContainer.style.left = '50%';
-                errorContainer.style.transform = 'translate(-50%, -50%)';
-                errorContainer.style.textAlign = 'center';
-                errorContainer.style.color = '#ef4444';
-                errorContainer.innerHTML = `
-                    <h2 style="font-size: 20px; margin-bottom: 8px;">Game Engine Not Loaded</h2>
-                    <p style="font-size: 16px; color: #4b5563;">Please refresh the page to try again.</p>
-                `;
-                canvas.parentNode.appendChild(errorContainer);
-            }
             return;
         }
-
+        
         // Wait for Three.js to be fully loaded
         const checkThreeJs = () => {
             if (typeof THREE.WebGLRenderer === 'undefined') {
@@ -153,7 +159,7 @@ class JourneyLevel {
         
         // Scene
         this.scene = new THREE.Scene();
-        this.scene.background = new THREE.Color(0x87CEEB); // Sky blue
+        // Remove solid background - will be replaced with parallax background
         
         // Camera
         this.camera = new THREE.PerspectiveCamera(
@@ -273,23 +279,165 @@ class JourneyLevel {
             this.scene.add(platform);
         });
         
+        // Parallax background system
+        this.createParallaxBackground();
+        
         // Background elements
         this.createBackgroundElements();
     }
     
+    createParallaxBackground() {
+        // Create parallax background layers using the provided images
+        const backgroundConfig = [
+            {
+                image: 'bg.png',
+                depth: -50,
+                speed: 0.1,
+                scale: 1.5,
+                name: 'farBackground'
+            },
+            {
+                image: 'bg2.png', 
+                depth: -25,
+                speed: 0.3,
+                scale: 1.2,
+                name: 'midBackground'
+            }
+        ];
+        
+        backgroundConfig.forEach((config, index) => {
+            // Load texture
+            this.textureLoader.load(
+                `assets/${config.image}`,
+                (texture) => {
+                    // Configure texture for tiling
+                    texture.wrapS = THREE.RepeatWrapping;
+                    texture.wrapT = THREE.ClampToEdgeWrapping;
+                    texture.magFilter = THREE.LinearFilter;
+                    texture.minFilter = THREE.LinearFilter;
+                    
+                    // Calculate how many times to repeat the texture across the level
+                    const textureAspect = texture.image.width / texture.image.height;
+                    const backgroundWidth = this.levelWidth * 2; // Make wider than level for smooth scrolling
+                    const backgroundHeight = 40; // Height of background plane
+                    const repeatX = backgroundWidth / (backgroundHeight * textureAspect * config.scale);
+                    
+                    texture.repeat.set(repeatX, 1);
+                    
+                    // Create background plane geometry
+                    const geometry = new THREE.PlaneGeometry(backgroundWidth, backgroundHeight);
+                    const material = new THREE.MeshBasicMaterial({ 
+                        map: texture,
+                        transparent: true,
+                        opacity: 0.9
+                    });
+                    
+                    const backgroundMesh = new THREE.Mesh(geometry, material);
+                    
+                    // Position the background
+                    backgroundMesh.position.set(
+                        this.levelWidth / 2, // Center horizontally
+                        backgroundHeight / 4, // Position vertically
+                        config.depth
+                    );
+                    
+                    // Store layer info for parallax updates
+                    const layerData = {
+                        mesh: backgroundMesh,
+                        speed: config.speed,
+                        basePosition: backgroundMesh.position.x,
+                        name: config.name
+                    };
+                    
+                    this.backgroundLayers.push(layerData);
+                    this.scene.add(backgroundMesh);
+                    
+                    console.log(`✅ Parallax layer ${config.name} loaded successfully (${texture.image.width}x${texture.image.height})`);
+                },
+                (progress) => {
+                    console.log(`Loading ${config.image}: ${(progress.loaded / progress.total * 100)}%`);
+                },
+                (error) => {
+                    console.warn(`❌ Failed to load background image ${config.image}:`, error);
+                    console.log(`🎨 Creating fallback gradient for ${config.name}`);
+                    // Create fallback gradient background
+                    this.createFallbackBackground(config);
+                }
+            );
+        });
+    }
+    
+    createFallbackBackground(config) {
+        // Create a fallback gradient background if images fail to load
+        const canvas = document.createElement('canvas');
+        canvas.width = 512;
+        canvas.height = 512;
+        const ctx = canvas.getContext('2d');
+        
+        // Create gradient that mimics the desert landscape colors
+        const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+        if (config.name === 'farBackground') {
+            // Far background - sky to distant mountains
+            gradient.addColorStop(0, '#F5E6A3'); // Warm cream sky
+            gradient.addColorStop(0.4, '#E6D18A'); // Light desert yellow
+            gradient.addColorStop(1, '#C49A6C'); // Desert brown
+        } else {
+            // Mid background - closer hills and terrain
+            gradient.addColorStop(0, '#E6D18A'); // Light desert yellow
+            gradient.addColorStop(0.6, '#D4A574'); // Medium desert brown
+            gradient.addColorStop(1, '#B8956A'); // Darker desert brown
+        }
+        
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        const texture = new THREE.CanvasTexture(canvas);
+        texture.wrapS = THREE.RepeatWrapping;
+        texture.wrapT = THREE.ClampToEdgeWrapping;
+        
+        const backgroundWidth = this.levelWidth * 2;
+        const backgroundHeight = 40;
+        
+        const geometry = new THREE.PlaneGeometry(backgroundWidth, backgroundHeight);
+        const material = new THREE.MeshBasicMaterial({ 
+            map: texture,
+            transparent: true,
+            opacity: 0.8
+        });
+        
+        const backgroundMesh = new THREE.Mesh(geometry, material);
+        backgroundMesh.position.set(
+            this.levelWidth / 2,
+            backgroundHeight / 4,
+            config.depth
+        );
+        
+        const layerData = {
+            mesh: backgroundMesh,
+            speed: config.speed,
+            basePosition: backgroundMesh.position.x,
+            name: config.name + '_fallback'
+        };
+        
+        this.backgroundLayers.push(layerData);
+        this.scene.add(backgroundMesh);
+    }
+    
     createBackgroundElements() {
-        // Distant mountains
-        for (let i = 0; i < 5; i++) {
-            const mountainGeometry = new THREE.ConeGeometry(3, 8, 4);
+        // Reduce the number of geometric mountains since we have parallax backgrounds
+        for (let i = 0; i < 3; i++) {
+            const mountainGeometry = new THREE.ConeGeometry(2, 6, 4);
             const mountainMaterial = new THREE.MeshLambertMaterial({ 
-                color: 0x696969 
+                color: 0x696969,
+                transparent: true,
+                opacity: 0.3 // Make them more subtle
             });
             const mountain = new THREE.Mesh(mountainGeometry, mountainMaterial);
             
             mountain.position.set(
-                i * 40 - 20, 
-                3, 
-                -20
+                i * 60 - 30, 
+                2, 
+                -15 // Bring them closer for layering effect
             );
             mountain.rotation.y = Math.PI / 4;
             
@@ -341,8 +489,8 @@ class JourneyLevel {
         if (typeof SpriteAnimation !== 'undefined' && typeof ThreeJSSpriteCharacter !== 'undefined') {
             try {
                 console.log('Loading sprite character...');
-                // 1024x1024 sprite sheet with 3x2 grid (6 frames), each frame ~341x512
-                this.characterSprite = new SpriteAnimation('assets/charUpdate.png', 341, 512, 3, 6);
+                // Updated sprite sheet with poses
+                this.characterSprite = new SpriteAnimation('assets/poses.png', 256, 512, 4, 8);
                 
                 // Wait for sprite to load
                 const initSprite = () => {
@@ -597,6 +745,10 @@ class JourneyLevel {
     collectJerryCan(jerryCan) {
         jerryCan.userData.collected = true;
         
+        // Trigger collection animation
+        this.characterState.isCollecting = true;
+        this.characterState.collectTimer = 400; // 400ms collection animation
+        
         // Add water points
         this.app.addWaterPoints(1);
         
@@ -623,6 +775,10 @@ class JourneyLevel {
     collectEnergyOrb(energyOrb) {
         console.log('Collecting energy orb!'); // Debug log
         energyOrb.userData.collected = true;
+        
+        // Trigger collection animation
+        this.characterState.isCollecting = true;
+        this.characterState.collectTimer = 400; // 400ms collection animation
         
         // Add energy
         this.app.updateEnergy(this.energyOrbValue);
@@ -674,37 +830,97 @@ class JourneyLevel {
         }
         
         // Apply movement
-        this.playerVelocity.x = moveX * this.moveSpeed;
+        if (moveX !== 0) {
+            this.playerVelocity.x = moveX * this.moveSpeed;
+        } else {
+            this.playerVelocity.x = 0; // Stop immediately when no input
+        }
         this.player.position.x += this.playerVelocity.x;
         
         // Jump
         if ((this.keys['Space'] || this.keys['ArrowUp'] || this.keys['KeyW'] || this.mobileInput === 'jump') && this.isOnGround) {
             this.playerVelocity.y = this.jumpStrength;
             this.isOnGround = false;
+            this.characterState.isJumping = true; // Set jumping state for animation
         }
         
         // Apply gravity
         this.playerVelocity.y -= this.gravity;
         this.player.position.y += this.playerVelocity.y;
         
+        // Update enhanced character state tracking
+        const isMoving = Math.abs(this.playerVelocity.x) > 0.01;
+        const isRunning = Math.abs(this.playerVelocity.x) > this.moveSpeed * 1.2;
+        const facingLeft = this.playerVelocity.x < 0;
+        
+        // Debug logging to see what's happening
+        if (Math.random() < 0.05) { // Log occasionally
+            console.log(`Movement debug: velocity=${this.playerVelocity.x.toFixed(3)}, isMoving=${isMoving}, isRunning=${isRunning}`);
+        }
+        
+        // Update facing direction
+        this.characterState.previousFacingDirection = this.characterState.facingDirection;
+        if (isMoving) {
+            this.characterState.facingDirection = facingLeft ? 'left' : 'right';
+        }
+        
+        // Track movement transitions
+        this.characterState.justStartedMoving = !this.characterState.wasMoving && isMoving;
+        this.characterState.justStoppedMoving = this.characterState.wasMoving && !isMoving;
+        this.characterState.wasMoving = isMoving;
+        
+        // Track landing
+        this.characterState.justLanded = !this.characterState.wasOnGround && this.isOnGround;
+        this.characterState.wasOnGround = this.isOnGround;
+        
+        // Update timers
+        if (this.characterState.collectTimer > 0) {
+            this.characterState.collectTimer -= 16;
+            this.characterState.isCollecting = this.characterState.collectTimer > 0;
+        }
+        
+        if (this.characterState.hitTimer > 0) {
+            this.characterState.hitTimer -= 16;
+            this.characterState.isHit = this.characterState.hitTimer > 0;
+        }
+        
+        // Check for death state
+        this.characterState.isDead = this.app.gameState.energy <= 0;
+        
         // Update sprite character if available
         if (this.spriteCharacter) {
-            const isMoving = Math.abs(this.playerVelocity.x) > 0.01;
-            const isRunning = Math.abs(this.playerVelocity.x) > this.moveSpeed * 1.2;
-            const facingLeft = this.playerVelocity.x < 0;
+            // Create comprehensive game state object for animator
+            const gameState = {
+                isMoving: isMoving,
+                isRunning: isRunning,
+                isJumping: this.characterState.isJumping,
+                isFalling: this.playerVelocity.y < -0.1 && !this.isOnGround,
+                isOnGround: this.isOnGround,
+                isCollecting: this.characterState.isCollecting,
+                isCrouching: this.keys['KeyS'] || this.keys['ArrowDown'],
+                facingDirection: this.characterState.facingDirection,
+                previousFacingDirection: this.characterState.previousFacingDirection,
+                isHit: this.characterState.isHit,
+                isDead: this.characterState.isDead,
+                isVictorious: this.characterState.isVictorious,
+                justLanded: this.characterState.justLanded,
+                justStartedMoving: this.characterState.justStartedMoving,
+                justStoppedMoving: this.characterState.justStoppedMoving
+            };
             
-            this.spriteCharacter.update(16, isMoving, isRunning, facingLeft);
+            this.spriteCharacter.update(16, gameState, facingLeft);
             this.spriteCharacter.setPosition(
                 this.player.position.x,
                 this.player.position.y + 0.2, // Minimal offset to make character appear grounded
                 this.player.position.z + 1 // Ensure sprite is in front
             );
-            
-            // Debug logging (remove after testing)
-            if (Math.random() < 0.01) { // Log occasionally to avoid spam
-                console.log(`Sprite pos: (${this.player.position.x.toFixed(1)}, ${this.player.position.y.toFixed(1)}), moving: ${isMoving}, facing: ${facingLeft ? 'left' : 'right'}`);
-            }
         }
+        
+        // Reset single-frame states
+        this.characterState.justLanded = false;
+        this.characterState.justStartedMoving = false;
+        this.characterState.justStoppedMoving = false;
+        this.characterState.isJumping = false;
         
         // Energy drain system
         this.updateEnergyDrain(moveX !== 0);
@@ -730,6 +946,7 @@ class JourneyLevel {
     
     updateEnergyDrain(isMoving) {
         const currentTime = Date.now();
+        const previousEnergy = this.app.gameState.energy;
         
         // Drain energy over time
         if (currentTime - this.lastEnergyUpdate > 1000) { // Every second
@@ -742,10 +959,18 @@ class JourneyLevel {
             this.app.updateEnergy(-this.movementEnergyCost);
         }
         
+        // Trigger hit animation if energy dropped significantly
+        const energyDrop = previousEnergy - this.app.gameState.energy;
+        if (energyDrop > 1) { // Significant energy loss
+            this.characterState.isHit = true;
+            this.characterState.hitTimer = 300; // 300ms hit animation
+        }
+        
         // Check if energy is depleted
         if (this.app.gameState.energy <= 0) {
             this.app.gameState.energy = 0;
-            // Could add game over logic here
+            // Trigger death animation
+            this.characterState.isDead = true;
         }
     }
     
@@ -827,6 +1052,9 @@ class JourneyLevel {
     }
     
     updateCamera() {
+        // Store previous camera position for parallax calculation
+        const previousCameraX = this.camera.position.x;
+        
         // Smooth camera following - center the camera directly on the player
         const targetX = this.player.position.x + this.cameraOffset;
         this.camera.position.x += (targetX - this.camera.position.x) * 0.15; // Slightly more responsive
@@ -834,8 +1062,32 @@ class JourneyLevel {
         // Keep camera within level bounds, but allow more centering
         this.camera.position.x = Math.max(7.5, Math.min(this.levelWidth - 7.5, this.camera.position.x));
         
+        // Calculate camera movement for parallax effect
+        const cameraMovement = this.camera.position.x - previousCameraX;
+        
+        // Update parallax background layers
+        this.updateParallaxBackground(cameraMovement);
+        
         // Always look at the player position for perfect centering
         this.camera.lookAt(this.player.position.x, this.player.position.y, 0);
+    }
+    
+    updateParallaxBackground(cameraMovement) {
+        // Update each background layer position based on camera movement and layer speed
+        this.backgroundLayers.forEach(layer => {
+            if (layer.mesh) {
+                // Move background in opposite direction of camera, scaled by speed
+                layer.mesh.position.x -= cameraMovement * layer.speed;
+                
+                // Optional: Reset position if it goes too far (for infinite scrolling)
+                const backgroundWidth = this.levelWidth * 2;
+                if (layer.mesh.position.x < -backgroundWidth / 2) {
+                    layer.mesh.position.x += backgroundWidth;
+                } else if (layer.mesh.position.x > backgroundWidth * 1.5) {
+                    layer.mesh.position.x -= backgroundWidth;
+                }
+            }
+        });
     }
     
     checkLevelCompletion() {
@@ -848,12 +1100,18 @@ class JourneyLevel {
     completeLevel() {
         this.isRunning = false;
         
-        if (this.isReturnJourney) {
-            this.app.completeReturnJourney();
-        } else {
-            // Start mini-game after journey
-            this.app.startMiniGame();
-        }
+        // Trigger victory animation
+        this.characterState.isVictorious = true;
+        
+        // Brief delay to show victory animation, then continue
+        setTimeout(() => {
+            if (this.isReturnJourney) {
+                this.app.completeReturnJourney();
+            } else {
+                // Start mini-game after journey
+                this.app.startMiniGame();
+            }
+        }, 1000);
     }
     
     onWindowResize() {
@@ -872,6 +1130,20 @@ class JourneyLevel {
         
         // Update renderer
         this.renderer.setSize(canvas.width, canvas.height, false);
+        
+        // Update parallax background scaling if needed
+        this.updateParallaxBackgroundScale();
+    }
+    
+    updateParallaxBackgroundScale() {
+        // Optionally adjust background scale based on screen size
+        this.backgroundLayers.forEach(layer => {
+            if (layer.mesh) {
+                // Maintain aspect ratio on resize
+                const scale = Math.max(1, window.innerWidth / 1920); // Base scale on 1920px width
+                layer.mesh.scale.setScalar(scale);
+            }
+        });
     }
     
     animate() {
@@ -947,6 +1219,7 @@ class JourneyLevel {
         this.jerryCans = [];
         this.energyOrbs = [];
         this.platforms = [];
+        this.backgroundLayers = [];
     }
     
     checkOrbCollection() {
@@ -1098,8 +1371,81 @@ class JourneyLevel {
         // Reset camera
         this.camera.position.set(0, 5, 15);
         
+        // Reset parallax background positions
+        this.backgroundLayers.forEach(layer => {
+            if (layer.mesh) {
+                layer.mesh.position.x = layer.basePosition;
+            }
+        });
+        
         // Restart the game loop
         this.isRunning = true;
         this.animate();
+    }
+    
+    // Method to manually trigger hit animation (for obstacles, spilling water, etc.)
+    triggerHitAnimation(duration = 300) {
+        this.characterState.isHit = true;
+        this.characterState.hitTimer = duration;
+    }
+    
+    // Method to trigger celebration animation
+    triggerCelebration(duration = 1000) {
+        this.characterState.isVictorious = true;
+        setTimeout(() => {
+            this.characterState.isVictorious = false;
+        }, duration);
+    }
+    
+    // Method to add special interaction animations
+    playInteractionAnimation(type = 'collect') {
+        switch(type) {
+            case 'collect':
+                this.characterState.isCollecting = true;
+                this.characterState.collectTimer = 400;
+                break;
+            case 'hit':
+                this.triggerHitAnimation();
+                break;
+            case 'celebrate':
+                this.triggerCelebration();
+                break;
+        }
+    }
+    
+    resetGame() {
+        // Clear existing game objects
+        this.scene.clear();
+        
+        // Dispose of the renderer if it exists
+        if (this.renderer) {
+            this.renderer.dispose();
+            this.renderer = null;
+        }
+        
+        // Reset game state variables
+        this.isRunning = false;
+        this.jerryCans = [];
+        this.energyOrbs = [];
+        this.platforms = [];
+        this.characterState = {
+            wasMoving: false,
+            wasOnGround: true,
+            facingDirection: 'right',
+            previousFacingDirection: 'right',
+            isJumping: false,
+            justLanded: false,
+            justStartedMoving: false,
+            justStoppedMoving: false,
+            isCollecting: false,
+            collectTimer: 0,
+            isHit: false,
+            hitTimer: 0,
+            isDead: false,
+            isVictorious: false
+        };
+        
+        // Reinitialize the game
+        this.init();
     }
 } 
